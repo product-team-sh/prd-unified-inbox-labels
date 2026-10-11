@@ -1,0 +1,871 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unified Inbox · team features on production</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Production stylesheet, downloaded verbatim from my.saleshandy.com/assets/index-BTykneNi.css on 11 Oct 2026
+     (webui main 2ae90d3). Only the icon-font URLs were repointed to the local copies beside it.
+     Markup below uses production's own class names, captured from the live /conversations page. -->
+<link rel="stylesheet" href="prod/index.css">
+<style>
+/* ───────── prototype-only styles. Everything production does not have is prefixed nx- ───────── */
+html,body{height:100%;margin:0}
+body{font-family:Inter,sans-serif;background:#fff;overflow:hidden}
+.demo{height:44px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:0 16px;background:#1f2937;color:#fff;font-size:12px;line-height:16px;position:relative;z-index:2000}
+.demo .t{color:#9ca3af;font-weight:500}
+.demo .seg{display:inline-flex;border:1px solid rgba(255,255,255,.22);border-radius:4px;overflow:hidden}
+.demo .seg button{background:none;border:0;color:#d1d5db;padding:4px 10px;font:500 12px Inter,sans-serif;cursor:pointer}
+.demo .seg button[aria-pressed="true"]{background:rgba(255,255,255,.16);color:#fff}
+.demo select{font:12px Inter,sans-serif;background:#374151;color:#fff;border:1px solid rgba(255,255,255,.22);border-radius:4px;padding:3px 6px}
+.demo .btnr{background:none;color:#d1d5db;border:1px solid rgba(255,255,255,.22);border-radius:4px;padding:4px 8px;font:500 12px Inter,sans-serif;cursor:pointer}
+.demo label{margin:0}
+.demo label.tg{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.demo .key{margin-left:auto;display:inline-flex;align-items:center;gap:6px;color:#c4b5fd}
+.demo .key i{width:14px;height:10px;border:2px dashed #a78bfa;border-radius:3px;display:inline-block}
+
+/* "What's new" highlight: every element production does not have carries .nx-new */
+.show-new .nx-new{outline:2px dashed #8b5cf6;outline-offset:2px;border-radius:4px}
+.show-new .nx-new-block{box-shadow:inset 0 0 0 2px #c4b5fd}
+
+.stage{height:calc(100vh - 44px);display:flex;min-height:0}
+.web{flex:1;min-width:0;display:flex;height:100%}
+.nx-rail{width:57px;flex-shrink:0;border-right:1px solid #e5e7eb;display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 0;background:#fff}
+.nx-rail .lg{width:24px;height:24px;margin-bottom:12px;color:#1d4ed8}
+.nx-rail a{width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#1f2937}
+.nx-rail a.on{background:#1d4ed8;color:#fff}
+.nx-main{flex:1;min-width:0;display:flex;flex-direction:column;height:100%}
+.nx-pagehdr{height:50px;flex-shrink:0;display:flex;align-items:center;padding:0 20px;border-bottom:1px solid #e5e7eb;background:#fff}
+.nx-pagehdr h2{margin:0;font-size:16px;line-height:24px;font-weight:600;color:#1f2937}
+.nx-pagehdr .me{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:14px;font-weight:500;color:#1f2937}
+.nx-pagehdr .me .shd-avatar{margin:0}
+.unified-inbox{min-height:0}
+.unified-inbox-mail-list{position:relative}
+
+/* new: label pills in a fixed-height row and in the thread header */
+
+
+.nx-more{font-size:10px;line-height:18px;font-weight:500;color:#6b7280;border:1px solid #e5e7eb;background:#fff;border-radius:2px;padding:0 4px;margin-left:4px}
+.mail-item .unified-inbox-unSubScribed .d-flex{flex-wrap:nowrap;overflow:hidden}
+/* production fades rows in once on load; the prototype re-renders on every click, so the replay is switched off */
+.unified-inbox-content .mail-item{animation:none}
+.mail-item .shd-pills .pills-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mail-item .sequence-pill{flex-shrink:1;min-width:48px;max-width:100%}
+.mail-item .email-category,.mail-item .nx-lpill,.mail-item .nx-more{flex-shrink:0}
+
+/* labels on their own line: labelled rows grow from production's 106px; unlabelled rows are untouched */
+.unified-inbox-content .mail-item.nx-has-labels{height:138px}
+.mail-item.nx-has-labels .unified-inbox-unSubScribed{flex-wrap:wrap}
+.nx-labelline{display:flex;align-items:center;gap:4px;margin-top:6px;overflow:hidden;flex-wrap:nowrap;flex-basis:100%;width:100%;min-width:0}
+
+
+
+
+
+.nx-more{margin:0;flex-shrink:0}
+.nx-hlabels{gap:6px;flex-shrink:0}
+/* design-system tags (ProspectTag, bs-tag bs-tag-blue-17) and the tag-button from AddRemoveTag; only spacing is set here */
+.nx-labelline .bs-tag,.nx-hlabels .bs-tag{margin:0;max-width:150px}
+/* rows use the design system's compact tag size (12px/18px, as in .prospect-sequence-list-container .bs-tag) */
+.nx-labelline .bs-tag .regular-2{font-size:12px;line-height:18px;font-weight:500}
+.nx-labelline .bs-tag .regular-2,.nx-hlabels .bs-tag .nx-tagname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nx-labelline .bs-tag[data-act],.nx-hlabels .nx-tagname{cursor:pointer}
+.nx-labelline .bs-tag[data-act]:hover,.nx-hlabels .nx-tagname:hover{text-decoration:underline}
+.nx-hlabels .sh-close{cursor:pointer;font-size:10px;color:#6b7280}
+.nx-hlabels .sh-close:hover{color:#1f2937}
+.nx-hlabels .tag-button{font-family:Inter,sans-serif}
+.nx-hlabels .tag-button.open{border-color:#1d4ed8!important;color:#1d4ed8!important}
+.m-pill.lab{border:0;background:#eff6ff;color:#1f2937;cursor:pointer}
+.unified-inbox-mail-header--left{min-width:0;flex:1 1 auto}
+.unified-inbox-mail-header--left>.d-flex{min-width:0}
+.unified-inbox-mail-subject{min-width:0;overflow:hidden}
+.unified-inbox-mail-subject span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.unified-inbox-mail-header--right{flex-shrink:0}
+.unified-inbox-mail-header--left>.gap-8{flex-shrink:0}
+.unified-inbox-mail-header--left .shd-pills .pills-label{white-space:nowrap}
+.unified-inbox-mail-header--right .email-category-renderer{white-space:nowrap}
+@media (max-width:1300px){.demo .key{display:none}}
+
+
+
+
+
+
+
+
+/* bootstrap stacking: backdrop under the modal it belongs to */
+#overlay .modal-backdrop{z-index:1040}
+#overlay .modal{z-index:1050;top:44px;height:calc(100% - 44px)}
+#overlay .modal-backdrop{top:44px}
+/* production slides the drawer in once; the prototype redraws on every click, so the slide plays only when it opens */
+#overlay .prospects-filters-modal.nx-settled{animation:none}
+/* production fades a message body in when it is expanded; redraws here would replay it on every click */
+.unified-inbox-mail-threads .accordion__panel{animation:none}
+#overlay .prospects-filters-modal .modal-dialog{height:100%}
+.nx-banner .btn-solid svg{margin-right:6px}
+.nx-who{color:#374151;font-weight:500}
+.nx-delby{display:inline-flex;align-items:center;gap:4px;font-size:10px;line-height:16px;font-weight:500;color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;border-radius:2px;padding:1px 5px;white-space:nowrap}
+
+/* labels control beside Outcome, same box as production's select */
+.nx-anchor{position:relative;display:flex;align-items:center}
+.unified-inbox-mail-header--right{gap:12px}
+.mail-action-btn{color:#6b7280}
+.mail-action-btn:hover{color:#1f2937}
+.mail-action-btn.nx-del:hover{color:#b91c1c}
+
+/* production transfer dropdown, positioned under its control */
+.nx-pop{position:absolute;top:calc(100% + 6px);right:0;z-index:50;width:264px}
+.nx-pop .transfer-container{background:#fff;border:1px solid #e5e7eb;border-radius:4px;box-shadow:0 2px 12px rgba(31,41,55,.12)}
+.nx-pop .transfer-body{padding:8px}
+.nx-pop .transfer-search .bs-input-affix-wrapper{width:100%}
+.nx-pop .transfer-list{list-style:none;margin:6px 0 0;padding:0;max-height:260px;overflow:auto}
+.nx-pop .transfer-list li{display:flex;align-items:center;gap:8px;min-height:32px;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:14px;color:#1f2937}
+.nx-pop .transfer-list li:hover{background:#f3f4f6}
+.nx-pop .transfer-list li.active{background:#eff6ff;color:#1d4ed8}
+.nx-pop .transfer-list li .k{margin-left:auto;font-size:12px;color:#6b7280}
+.nx-pop .transfer-list li.nx-add{color:#1d4ed8;font-weight:500}
+.nx-pop .nx-hint{font-size:12px;line-height:16px;color:#6b7280;padding:8px 8px 2px;border-top:1px solid #f3f4f6;margin-top:6px}
+.nx-pop .nx-form{display:flex;flex-direction:column;gap:10px;padding:4px}
+.nx-pop .nx-form .ttl{font-weight:600;font-size:14px;color:#1f2937}
+.nx-pop .nx-form input{height:32px;border:1px solid #1d4ed8;box-shadow:0 0 0 3px #dbeafe;border-radius:4px;padding:0 8px;font:14px Inter,sans-serif;outline:0}
+.nx-pop .nx-form input.err{border-color:#b91c1c;box-shadow:0 0 0 3px #fee2e2}
+.nx-pop .nx-form .er{font-size:12px;color:#b91c1c}
+.nx-pop .nx-form .btns{display:flex;justify-content:flex-end;gap:8px}
+.nx-cbx{width:16px;height:16px;border-radius:3px;border:1.5px solid #9ca3af;box-sizing:border-box;position:relative;flex-shrink:0;display:inline-block}
+.nx-cbx.on{background:#1d4ed8;border-color:#1d4ed8}
+.nx-cbx.on::after{content:"";position:absolute;left:4px;top:1px;width:4px;height:8px;border:solid #fff;border-width:0 1.5px 1.5px 0;transform:rotate(40deg)}
+
+/* new: who sent a team reply, and activity lines in the thread */
+.nx-sentby{display:inline-flex;align-items:center;gap:4px;margin-left:8px;font-size:11px;line-height:16px;font-weight:500;color:#1e40af;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:0 8px;vertical-align:middle}
+.nx-sentby.seq{color:#4b5563;background:#f3f4f6;border-color:#e5e7eb}
+.nx-sentby.ext{color:#92400e;background:#fffbeb;border-color:#fde68a}
+.nx-act{display:flex;align-items:center;gap:8px;font-size:12px;line-height:16px;color:#6b7280;margin:0 0 14px}
+.nx-act i{flex:1;height:1px;background:#e5e7eb}
+.nx-act b{color:#374151;font-weight:600}
+.nx-act.red{color:#b91c1c}.nx-act.red b{color:#b91c1c}.nx-act.red i{background:#fecaca}
+.nx-act .shd-avatar{margin:0}
+.nx-banner{display:flex;align-items:center;gap:12px;padding:10px 24px;background:#fef2f2;border-bottom:1px solid #fecaca;color:#991b1b;font-size:14px;flex-wrap:wrap}
+.nx-banner .btn-solid{margin-left:auto}
+.nx-replybtn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 14px;border:1px solid #1d4ed8;color:#1d4ed8;background:#fff;border-radius:4px;font:500 14px Inter,sans-serif;cursor:pointer;margin:2px 0 24px}
+.nx-composer{border:1px solid #d1d5db;border-radius:8px;background:#fff;margin:2px 0 24px}
+.nx-composer textarea{display:block;width:100%;border:0;outline:0;resize:none;padding:12px 14px;min-height:88px;font:14px/20px Inter,sans-serif;border-radius:8px 8px 0 0}
+.nx-composer .cb{display:flex;align-items:center;gap:8px;padding:8px 12px;border-top:1px solid #f3f4f6;font-size:12px;color:#6b7280}
+.nx-composer .cb .btn-ghost{margin-left:auto}
+.nx-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1f2937;color:#fff;border-radius:6px;padding:10px 16px;display:flex;gap:16px;align-items:center;font-size:14px;z-index:3000;box-shadow:0 4px 16px rgba(0,0,0,.2)}
+.nx-toast button{background:none;border:0;color:#93c5fd;font:500 14px Inter,sans-serif;cursor:pointer;padding:0}
+.nx-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#6b7280;font-size:14px}
+.nx-empty b{color:#1f2937;font-size:16px}
+
+/* filters drawer: production modal shell; react-select boxes redrawn from their computed styles */
+.nx-sel{position:relative}
+.nx-sel .ctl{min-height:38px;border:1px solid #e5e7eb;border-radius:4px;background:#fff;display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:4px 40px 4px 10px;cursor:pointer;font-size:14px;color:#6b7280;position:relative}
+.nx-sel .ctl::after{content:"";position:absolute;right:34px;top:8px;bottom:8px;width:1px;background:#ccc}
+.nx-sel .ctl .chev{position:absolute;right:9px;top:50%;transform:translateY(-50%);color:#ccc;display:flex}
+.nx-sel .chipv{display:inline-flex;align-items:center;gap:4px;background:#f3f4f6;border-radius:2px;padding:1px 6px;font-size:12px;color:#1f2937}
+.nx-sel .opts{position:absolute;left:0;right:0;top:calc(100% + 4px);background:#fff;border:1px solid #e5e7eb;border-radius:4px;box-shadow:0 4px 14px rgba(31,41,55,.12);z-index:5;padding:4px;max-height:240px;overflow:auto}
+.nx-sel .opts div{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:4px;cursor:pointer;font-size:14px;color:#1f2937}
+.nx-sel .opts div:hover{background:#f3f4f6}
+.nx-sel .opts .k{margin-left:auto;color:#6b7280;font-size:12px}
+.nx-radios{display:flex;gap:16px;font-size:14px;color:#1f2937}
+.nx-radios span{display:inline-flex;align-items:center;gap:6px}
+.nx-radios i{width:14px;height:14px;border-radius:50%;border:1px solid #d1d5db;display:inline-block}
+.nx-radios i.on{border:4px solid #1d4ed8}
+.nx-applied{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 24px;border-bottom:1px solid #eaedef;background:#fff;font-size:12px}
+.nx-applied .fc{display:inline-flex;align-items:center;gap:6px;border:1px solid #e5e7eb;border-radius:14px;padding:2px 4px 2px 10px;color:#374151;background:#f9fafb}
+.nx-applied .fc b{font-weight:600}
+.nx-applied .fc button{border:0;background:none;color:#6b7280;cursor:pointer;width:18px;height:18px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center}
+.nx-applied .fc button:hover{background:#e5e7eb}
+.nx-applied .clr{color:#1d4ed8;font-weight:500;cursor:pointer;background:none;border:0;font-size:12px}
+.nx-confirm .modal-dialog{max-width:460px}
+.nx-confirm .who{display:flex;align-items:center;gap:8px;padding:10px 12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;color:#4b5563;margin:12px 0}
+.nx-confirm .who .shd-avatar{margin:0}
+.nx-btn-danger{display:inline-flex;align-items:center;height:32px;padding:0 16px;border-radius:4px;background:#b91c1c;color:#fff;border:0;font:500 14px Inter,sans-serif;cursor:pointer}
+.nx-btn-danger:hover{background:#991b1b}
+
+/* ───────── mobile app frame (drawn from the app's help-centre screenshots) ───────── */
+.mob-wrap{display:flex;align-items:flex-start;justify-content:center;gap:32px;padding:24px;overflow:auto;background:#eef2ff;height:100%;box-sizing:border-box;flex-wrap:wrap;flex:1}
+.both .mob-wrap{flex:0 0 470px;border-left:1px solid #e5e7eb}
+.phone{width:390px;height:780px;border-radius:44px;border:10px solid #c7d2fe;background:#fff;position:relative;overflow:hidden;box-shadow:0 10px 30px rgba(49,46,129,.15);font-family:Inter,sans-serif;color:#111827;flex-shrink:0}
+.phone .sb{height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 26px;font-size:14px;font-weight:600}
+.phone .scr{position:absolute;top:40px;left:0;right:0;bottom:0;display:flex;flex-direction:column}
+.m-top{display:flex;align-items:center;gap:10px;padding:6px 14px}
+.m-search{flex:1;height:38px;border-radius:19px;background:#f3f4f6;display:flex;align-items:center;gap:8px;padding:0 14px;color:#6b7280;font-size:14px}
+.m-me{width:34px;height:34px;border-radius:17px;background:#e0e7ff;color:#3730a3;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600}
+.m-chips{display:flex;gap:8px;overflow-x:auto;padding:8px 14px 10px;scrollbar-width:none;flex-shrink:0}
+.m-chips::-webkit-scrollbar{display:none}
+.m-chip{flex-shrink:0;display:inline-flex;align-items:center;gap:4px;height:30px;padding:0 12px;border-radius:15px;border:1px solid #e5e7eb;font-size:12px;font-weight:500;color:#374151;background:#fff;cursor:pointer;white-space:nowrap}
+.m-chip.on{background:#dbeafe;border-color:#93c5fd;color:#1d4ed8}
+.m-chip.clr{color:#1d4ed8;border-color:#93c5fd}
+.m-tabs{display:flex;gap:18px;padding:0 16px;border-bottom:1px solid #f3f4f6;font-size:13px;font-weight:500;color:#6b7280;flex-shrink:0}
+.m-tabs span{padding:8px 0;cursor:pointer}
+.m-tabs span.on{color:#1d4ed8;box-shadow:inset 0 -2px 0 #1d4ed8}
+.m-list{flex:1;overflow:auto}
+.m-row{display:flex;gap:12px;padding:12px 16px;border-bottom:1px solid #f3f4f6;cursor:pointer}
+.m-row .av{width:36px;height:36px;border-radius:18px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.m-row .b{flex:1;min-width:0}
+.m-row .n{display:flex;align-items:center;gap:6px;font-size:15px;font-weight:600}
+.m-row .n .d{width:7px;height:7px;border-radius:4px;background:#2563eb}
+.m-row .n .dt{margin-left:auto;font-size:12px;font-weight:400;color:#6b7280}
+.m-row .s{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.m-row .p{font-size:13px;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.m-row .pl{display:flex;gap:6px;margin-top:6px;overflow:hidden}
+.m-pill{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 7px;border-radius:4px;border:1px solid #e5e7eb;font-size:11px;color:#4b5563;white-space:nowrap;flex-shrink:0}
+.m-pill.pos{border-color:#86efac;background:#f0fdf4;color:#15803d}
+.m-pill.neg{border-color:#fecaca;background:#fef2f2;color:#b91c1c}
+.m-pill.del{border-color:#fecaca;background:#fef2f2;color:#b91c1c}
+.m-bar{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid #f3f4f6}
+.m-bar .ttl{flex:1;min-width:0;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.m-ib{width:36px;height:36px;border-radius:18px;border:1px solid #e5e7eb;display:flex;align-items:center;justify-content:center;color:#374151;background:#fff;cursor:pointer;flex-shrink:0;position:relative}
+.m-ib .bd{position:absolute;top:-3px;right:-3px;min-width:16px;height:16px;border-radius:8px;background:#1d4ed8;color:#fff;font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center;padding:0 3px}
+.m-meta{display:flex;gap:6px;flex-wrap:wrap;padding:8px 14px;border-bottom:1px solid #f3f4f6}
+.m-thread{flex:1;overflow:auto;padding:12px 14px;display:flex;flex-direction:column;gap:10px;background:#f9fafb}
+.m-msg{background:#fff;border:1px solid #eef0f3;border-radius:12px;padding:10px 12px;font-size:13px;line-height:19px;flex-shrink:0}
+.m-msg .f{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;color:#6b7280;margin-bottom:4px}
+.m-msg .f b{color:#111827}
+.m-act{display:flex;align-items:center;gap:6px;font-size:11px;color:#6b7280;flex-shrink:0}
+.m-act i{flex:1;height:1px;background:#e5e7eb}
+.m-act b{color:#374151}
+.m-act.red,.m-act.red b{color:#b91c1c}
+.m-reply{padding:10px 14px;border-top:1px solid #f3f4f6;display:flex;gap:8px}
+.m-reply span{flex:1;height:40px;border-radius:20px;border:1px solid #e5e7eb;display:flex;align-items:center;padding:0 14px;color:#9ca3af;font-size:14px}
+.m-reply b{width:40px;height:40px;border-radius:20px;background:#1d4ed8;color:#fff;display:flex;align-items:center;justify-content:center}
+.m-sheet-bg{position:absolute;inset:0;background:rgba(17,24,39,.35);z-index:5}
+.m-sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:18px 18px 0 0;z-index:6;padding:8px 0 16px;max-height:80%;overflow:auto}
+.m-sheet .grab{width:40px;height:4px;border-radius:2px;background:#d1d5db;margin:0 auto 8px}
+.m-sheet .hd{display:flex;align-items:center;justify-content:space-between;padding:4px 18px 10px;font-size:17px;font-weight:600}
+.m-sheet .hd button{background:none;border:0;font-size:22px;line-height:22px;color:#6b7280;cursor:pointer}
+.m-sheet .opt{display:flex;align-items:center;gap:12px;padding:12px 18px;font-size:15px;cursor:pointer;border-top:1px solid #f9fafb}
+.m-sheet .opt .rd{margin-left:auto;width:20px;height:20px;border-radius:10px;border:1.5px solid #9ca3af;box-sizing:border-box}
+.m-sheet .opt .rd.on{border:6px solid #1d4ed8}
+.m-sheet .opt .k{margin-left:auto;color:#6b7280;font-size:13px}
+.m-sheet .opt.add{color:#1d4ed8;font-weight:500}
+.m-sheet .note{font-size:12px;color:#6b7280;padding:8px 18px 0}
+.m-sheet .acts{display:flex;gap:10px;padding:12px 18px 0}
+.m-sheet .acts button{flex:1;height:44px;border-radius:10px;font:600 15px Inter,sans-serif;border:1px solid #e5e7eb;background:#fff;cursor:pointer}
+.m-sheet .acts button.d{background:#b91c1c;border-color:#b91c1c;color:#fff}
+.m-sheet .acts button.p{background:#1d4ed8;border-color:#1d4ed8;color:#fff}
+.m-sheet .acts button:disabled{opacity:.4}
+.m-sheet input{margin:4px 18px;width:calc(100% - 36px);height:44px;border:1px solid #1d4ed8;border-radius:10px;padding:0 12px;font:15px Inter,sans-serif;box-sizing:border-box;outline:0}
+.m-banner{display:flex;align-items:center;gap:8px;padding:10px 14px;background:#fef2f2;color:#991b1b;font-size:12px}
+.m-banner b{margin-left:auto;color:#1d4ed8;cursor:pointer}
+.m-cap{width:300px;font-size:13px;line-height:20px;color:#374151}
+.m-cap h3{margin:0 0 8px;font-size:15px;color:#111827}
+.m-cap ul{margin:0;padding-left:18px}
+.m-cap li{margin-bottom:6px}
+</style>
+</head>
+<body>
+<div class="demo" id="demo"></div>
+<div class="stage" id="stage"></div>
+<div id="overlay"></div>
+
+<script>
+/* ═════════ data ═════════ */
+const USERS = { aj: { name: 'Aisha J.', init: 'AJ' }, rk: { name: 'Rohan K.', init: 'RK' }, ms: { name: 'Meera S.', init: 'MS' } };
+const ORDER = ['aj', 'rk', 'ms'];
+const MAILBOX = { name: 'Meridian Sales', email: 'sales@meridian.io', init: 'MS' };
+const SENT = { pos: 'positive-sentiment', neg: 'negative-sentiment', neu: 'neutral-sentiment', def: 'default-sentiment' };
+const OUTCOMES = [
+  { id: 'unc', name: 'Uncategorized', s: 'def', ic: 'mail' }, { id: 'int', name: 'Interested', s: 'pos', ic: 'thumb' },
+  { id: 'ni', name: 'Not Interested', s: 'neg', ic: 'thumbd' }, { id: 'mtg', name: 'Meeting Booked', s: 'pos', ic: 'cal' },
+  { id: 'ooo', name: 'Out of Office', s: 'neu', ic: 'plane' }, { id: 'cls', name: 'Closed', s: 'pos', ic: 'dollar' },
+  { id: 'now', name: 'Not Now', s: 'neu', ic: 'clock' }, { id: 'dnc', name: 'Do Not Contact', s: 'neg', ic: 'ban' },
+];
+const STEPS = ['1. Aisha opens the shared inbox', '2. Every reply names who sent it', '3. Aisha adds a label', '4. Aisha creates a new label',
+  '5. Aisha changes the outcome', '6. Aisha deletes a thread', '7. Meera sees who deleted it', '8. Meera filters by who replied'];
+const d = (day, h, m) => new Date(2026, 9, day, h, m).getTime();
+const NOW0 = d(9, 11, 0);
+let S, ui, clock;
+
+function seed() {
+  clock = NOW0;
+  S = {
+    me: 'aj',
+    labels: [{ id: 'followup', name: 'Follow up' }, { id: 'pricing', name: 'Pricing ask' }, { id: 'referral', name: 'Referral' }, { id: 'rohan', name: 'Rohan' }],
+    threads: [
+      { id: 'tom', name: 'Tom Yardley', email: 'tom@cassmetals.com', init: 'TY', seq: 'Fabricators, Midlands', subject: 'Re: Quick question on quoting times', outcome: 'int', labels: ['followup'], unread: true, deleted: null, finished: false, items: [
+        { k: 'seq', step: 2, at: d(6, 9, 30), text: 'Hi Tom,\n\nFollowing up on my note last week. Worth fifteen minutes to see whether this fits how your buyers work?' },
+        { k: 'in', at: d(8, 16, 12), text: 'Interesting. Can you send the case study you mentioned?' },
+        { k: 'ev', type: 'outcome', by: 'rk', from: 'unc', to: 'int', at: d(8, 16, 20) },
+        { k: 'out', by: 'rk', at: d(9, 9, 0), text: 'Here it is, Tom. Cass Metals cut quoting time by a third in the first quarter.' },
+        { k: 'in', at: d(9, 10, 0), text: 'Thanks. What would pricing look like for two plants?' },
+      ] },
+      { id: 'leah', name: 'Leah Osei', email: 'leah@harbourview.co', init: 'LO', seq: 'Q4 line-haul', subject: 'Re: Q4 capacity across your depots', outcome: 'unc', labels: ['referral'], unread: true, deleted: null, items: [
+        { k: 'seq', step: 1, at: d(8, 9, 0), text: 'Hi Leah,\n\nHow are you planning Q4 line-haul capacity across your depots?' },
+        { k: 'in', at: d(9, 8, 0), text: 'Not the right person, try Marcus in ops. He owns carrier contracts.' },
+      ] },
+      { id: 'dana', name: 'Dana Whitfield', email: 'dana@brightline.com', init: 'DW', seq: 'Q4 line-haul', subject: 'Re: Lane-by-lane numbers', outcome: 'int', labels: ['pricing'], unread: false, deleted: null, items: [
+        { k: 'seq', step: 2, at: d(7, 9, 0), text: 'Hi Dana,\n\nSharing the lane-by-lane numbers we discussed. Happy to send a summary.' },
+        { k: 'in', at: d(9, 6, 40), text: "Send the summary over. If the numbers hold up I'll loop in finance." },
+        { k: 'ev', type: 'outcome', by: null, from: 'unc', to: 'int', at: d(9, 6, 41) },
+        { k: 'out', by: 'aj', at: d(9, 7, 10), text: 'Summary attached, Dana. The numbers assume your current three lanes.' },
+      ] },
+      { id: 'ben', name: 'Ben Novak', email: 'ben@northwind.io', init: 'BN', seq: 'Q4 line-haul', subject: 'Automatic reply: Out of office', outcome: 'ooo', labels: [], unread: true, deleted: null, items: [
+        { k: 'seq', step: 1, at: d(9, 6, 2), text: 'Hi Ben,\n\nQuick one: how are you handling Q4 line-haul capacity across the Northwind depots?' },
+        { k: 'in', at: d(9, 6, 3), text: "I'm away until 14 Oct with limited access to email. For urgent matters contact ops@northwind.io." },
+        { k: 'ev', type: 'outcome', by: null, from: 'unc', to: 'ooo', at: d(9, 6, 3) },
+      ] },
+      { id: 'priya', name: 'Priya Raman', email: 'priya@vertexhealth.com', init: 'PR', seq: 'Fabricators, Midlands', subject: 'Re: Onboarding in November', outcome: 'int', labels: [], unread: false, deleted: null, items: [
+        { k: 'seq', step: 3, at: d(5, 9, 0), text: 'Hi Priya,\n\nOne last note from me. If onboarding time is the blocker, it is shorter than most expect.' },
+        { k: 'in', at: d(8, 9, 15), text: 'What would onboarding look like if we started in November?' },
+        { k: 'ev', type: 'outcome', by: 'ms', from: 'unc', to: 'int', at: d(8, 9, 30) },
+        { k: 'out', by: 'ms', at: d(8, 10, 5), text: 'About two weeks end to end. I can walk you through it on a call.' },
+      ] },
+      { id: 'marcus', name: 'Marcus Hill', email: 'marcus@harbourview.co', init: 'MH', seq: 'Q4 line-haul', subject: 'Re: Comparing notes on Q4 rates', outcome: 'unc', labels: ['referral'], unread: false, deleted: null, items: [
+        { k: 'seq', step: 1, at: d(7, 9, 0), text: 'Hi Marcus,\n\nLeah suggested you own carrier contracts. Open to comparing notes on Q4 rates?' },
+        { k: 'in', at: d(7, 15, 20), text: 'Leah passed your note on. Happy to compare notes on carrier rates.' },
+        { k: 'out', by: null, ext: true, at: d(8, 11, 0), text: 'Thanks Marcus, sending a few times for next week.' },
+      ] },
+      { id: 'sofia', name: 'Sofia Lindqvist', email: 'sofia@alloyco.com', init: 'SL', seq: 'Fabricators, Midlands', subject: 'Re: Following up', outcome: 'ni', labels: [], unread: false, deleted: null, finished: true, items: [
+        { k: 'seq', step: 2, at: d(5, 9, 0), text: 'Hi Sofia,\n\nFollowing up in case my first note got buried.' },
+        { k: 'in', at: d(6, 14, 0), text: "We've just signed with another vendor, so not this year." },
+        { k: 'ev', type: 'outcome', by: 'rk', from: 'unc', to: 'ni', at: d(6, 14, 30) },
+      ] },
+      { id: 'arjun', name: 'Arjun Mehta', email: 'arjun@cascade.partners', init: 'AM', seq: 'Fabricators, Midlands', subject: 'Re: 20 minutes on quoting times', outcome: 'mtg', labels: ['rohan'], unread: false, deleted: null, finished: true, items: [
+        { k: 'seq', step: 1, at: d(5, 9, 0), text: 'Hi Arjun,\n\nWould a 20-minute look at quoting times be useful this month?' },
+        { k: 'in', at: d(6, 10, 0), text: 'Tuesday works. Send an invite?' },
+        { k: 'out', by: 'rk', at: d(6, 10, 20), text: 'Invite sent for Tuesday at 11.' },
+        { k: 'ev', type: 'outcome', by: 'rk', from: 'unc', to: 'mtg', at: d(6, 10, 21) },
+      ] },
+    ],
+  };
+  ui = { view: 'web', showNew: true, feed: 'all', sel: null, search: '', pop: null, labelQuery: '', newName: '',
+         modal: null, toast: null, composing: false, draft: '', filters: { outcomes: [], replied: [], labels: [] },
+         draftFilters: null, openSel: null, m: { screen: 'list', sheet: null, newName: '' } };
+}
+
+/* ═════════ helpers ═════════ */
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const T = (id) => S.threads.find((t) => t.id === id);
+const L = (id) => S.labels.find((l) => l.id === id);
+const O = (id) => OUTCOMES.find((o) => o.id === id);
+const tick = () => (clock += 60e3);
+const who = (u) => (u === S.me ? 'You' : USERS[u].name);
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const ord = (n) => n + (n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th');
+function hm(ts) { const x = new Date(ts); let h = x.getHours(); const m = String(x.getMinutes()).padStart(2, '0'); const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return `${String(h).padStart(2, '0')}:${m} ${ap}`; }
+const sameDay = (a, b) => new Date(a).toDateString() === new Date(b).toDateString();
+const listDate = (ts) => (sameDay(ts, clock) ? hm(ts) : `${MON[new Date(ts).getMonth()]} ${ord(new Date(ts).getDate())}`);
+const fullDate = (ts) => { const x = new Date(ts); return `${MON[x.getMonth()]} ${x.getDate()}, ${x.getFullYear()} ${hm(ts)}`; };
+function rel(ts) { const diff = clock - ts; if (diff < 60e3) return 'just now'; if (diff < 36e5) return `${Math.round(diff / 60e3)} min ago`; return sameDay(ts, clock) ? `today, ${hm(ts)}` : fullDate(ts); }
+const lastAt = (t) => Math.max(...t.items.map((i) => i.at));
+const outs = (t) => t.items.filter((i) => i.k === 'out');
+const lastMsg = (t) => [...t.items].reverse().find((i) => i.k !== 'ev');
+const repliers = (t) => new Set(outs(t).map((o) => (o.ext ? 'ext' : o.by)));
+const live = () => S.threads.filter((t) => !t.deleted);
+const labelCount = (id) => live().filter((t) => t.labels.includes(id)).length;
+function labelText(t) { if (!t.labels.length) return 'Add label'; const n = t.labels.map((l) => L(l).name); return n.length <= 2 ? n.join(', ') : `${n.slice(0, 2).join(', ')} +${n.length - 2}`; }
+const emptyF = () => ({ outcomes: [], replied: [], labels: [] });
+
+function matches(t, f = ui.filters) {
+  if (ui.feed === 'deleted') return !!t.deleted;
+  if (t.deleted) return false;
+  if (ui.feed === 'unread' && !t.unread) return false;
+  if (ui.feed === 'scheduled' || ui.feed === 'draft') return false;
+  if (f.outcomes.length && !f.outcomes.includes(t.outcome)) return false;
+  if (f.labels.length && !f.labels.some((l) => t.labels.includes(l))) return false;
+  if (f.replied.length) { const r = repliers(t); if (!f.replied.some((v) => (v === 'none' ? r.size === 0 : r.has(v)))) return false; }
+  if (ui.search) { const q = ui.search.toLowerCase(); if (![t.name, t.subject, ...t.items.map((i) => i.text || '')].join(' ').toLowerCase().includes(q)) return false; }
+  return true;
+}
+const visible = (f) => S.threads.filter((t) => matches(t, f)).sort((a, b) => (ui.feed === 'deleted' ? b.deleted.at - a.deleted.at : lastAt(b) - lastAt(a)));
+
+/* ═════════ icons (production SVGs where captured; repo-equivalent strokes elsewhere) ═════════ */
+const P = {
+  send: '<path fill="currentColor" fill-rule="evenodd" d="M21.7 2.2a1 1 0 0 1 0 1.4l-11 11a1 1 0 0 1-1.4-1.4l11-11a1 1 0 0 1 1.4 0Z" clip-rule="evenodd"/><path fill="currentColor" fill-rule="evenodd" d="M21.7 2.2a1 1 0 0 1 .234 1.0l-6.5 18a1.5 1.5 0 0 1-2.8.096l-3.3-6.6-6.6-3.3a1.5 1.5 0 0 1 .095-2.8l18-6.5a1 1 0 0 1 1.0.233ZM4.3 10.0l6.0 3.0a1 1 0 0 1 .448.4l3.0 6.0 5.4-14.9-14.9 5.4Z" clip-rule="evenodd"/>',
+  thumb: '<path fill="currentColor" fill-rule="evenodd" d="M13 5.0a1 1 0 0 0-1 1v1a5 5 0 0 1-4 4.9v5.1a2 2 0 0 0 2 2h7a1 1 0 0 1 .085.0c.087.0.238-.017.4-.21.2-.199.3-.54.5-1.0l.974-4.8a1 1 0 0 0-.997-.918h-3a1 1 0 0 1-1-1v-5a1 1 0 0 0-1-1Zm-5.4 15.2a2.0 2.0 0 0 1-1.6.8H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3a3 3 0 0 0 3-3v-1a3 3 0 0 1 6 0v4h2a3 3 0 0 1 3 3c0 .066-.006.1-.02.1l-1 5-.006.0c-.177.7-.524 1.4-1.0 1.9-.518.5-1.2.84-1.9.791H10a4 4 0 0 1-2.4-.8Zm-1.6-8.2H4v7h2v-7Z" clip-rule="evenodd"/>',
+  ban: '<path fill="currentColor" fill-rule="evenodd" d="M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16ZM2 12C2 6.4 6.4 2 12 2s10 4.4 10 10-4.4 10-10 10S2 17.5 2 12Z" clip-rule="evenodd"/><path fill="currentColor" fill-rule="evenodd" d="M4.9 4.9a1 1 0 0 1 1.4 0l12.6 12.6a1 1 0 0 1-1.4 1.4l-12.6-12.6a1 1 0 0 1 0-1.4Z" clip-rule="evenodd"/>',
+  unread: '<path fill-rule="evenodd" clip-rule="evenodd" d="M3.7 4.4C3.3 4.4 3 4.8 3 5.2V12.7C3 13.1 3.3 13.4 3.7 13.4H14.2C14.6 13.4 15 13.1 15 12.7V5.2C15 4.8 14.6 4.4 14.2 4.4H3.7ZM1.5 5.2C1.5 4.0 2.5 2.9 3.7 2.9H14.2C15.4 2.9 16.5 4.0 16.5 5.2V12.7C16.5 13.9 15.4 14.9 14.2 14.9H3.7C2.5 14.9 1.5 13.9 1.5 12.7V5.2Z" fill="currentColor"/><path fill-rule="evenodd" clip-rule="evenodd" d="M1.6 4.8C1.8 4.4 2.3 4.4 2.6 4.6L9.0 8.8L15.3 4.6C15.6 4.4 16.1 4.4 16.3 4.8C16.6 5.1 16.5 5.6 16.1 5.8L9.4 10.3C9.1 10.5 8.8 10.5 8.5 10.3L1.8 5.8C1.4 5.6 1.3 5.1 1.6 4.8Z" fill="currentColor"/><circle cx="15" cy="14" r="2" fill="currentColor"/>',
+  reply: '<path fill-rule="evenodd" clip-rule="evenodd" d="M7.2 3.2C7.5 3.5 7.5 3.9 7.2 4.2L5.5 6.0H12C12.9 6.0 13.9 6.3 14.6 7.1C15.3 7.8 15.7 8.7 15.7 9.7C15.7 10.7 15.3 11.7 14.6 12.4C13.9 13.1 12.9 13.5 12 13.5H11.2C10.8 13.5 10.5 13.1 10.5 12.7C10.5 12.3 10.8 12.0 11.2 12.0H12C12.5 12.0 13.1 11.7 13.5 11.3C14.0 10.9 14.2 10.3 14.2 9.7C14.2 9.1 14.0 8.5 13.5 8.1C13.1 7.7 12.5 7.5 12 7.5H5.5L7.2 9.2C7.5 9.5 7.5 9.9 7.2 10.2C6.9 10.5 6.5 10.5 6.2 10.2L3.2 7.2C2.9 6.9 2.9 6.5 3.2 6.2L6.2 3.2C6.5 2.9 6.9 2.9 7.2 3.2Z" fill="currentColor"/>',
+};
+const S24 = (n, s = 12) => `<svg width="${s}" height="${s}" fill="none" viewBox="0 0 24 24" aria-hidden="true">${P[n]}</svg>`;
+const S18 = (n, s = 18) => `<svg width="${s}" height="${s}" viewBox="0 0 18 18" fill="none" aria-hidden="true">${P[n]}</svg>`;
+const ST = (dd, s = 16, w = 1.8) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${dd}</svg>`;
+const I = {
+  tag: (s = 12) => ST('<path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z"/><circle cx="7.5" cy="7.5" r="1.5"/>', s, 2),
+  trash: (s = 18) => ST('<path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12"/><path d="M9 7V4h6v3"/>', s, 1.6),
+  chev: (s = 16) => ST('<path d="m6 9 6 6 6-6"/>', s, 2),
+  chevL: (s = 18) => ST('<path d="m15 6-6 6 6 6"/>', s, 2),
+  chevR: (s = 18) => ST('<path d="m9 6 6 6-6 6"/>', s, 2),
+  fwd: (s = 18) => ST('<path d="M15 14l4-4-4-4"/><path d="M19 10H8a4 4 0 1 0 0 8h1"/>', s, 1.6),
+  backup: (s = 14) => ST('<path d="M9 14 5 10l4-4"/><path d="M5 10h11a4 4 0 1 1 0 8h-1"/>', s, 2),
+  info: (s = 12) => ST('<circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/>', s, 2),
+  restore: (s = 14) => ST('<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/>', s, 2),
+  search: (s = 16) => ST('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>', s, 2),
+  x: (s = 12) => ST('<path d="M6 6l12 12M18 6 6 18"/>', s, 2.2),
+  plus: (s = 14) => ST('<path d="M12 5v14M5 12h14"/>', s, 2.2),
+  mail: (s = 12) => ST('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>', s, 2),
+  cal: (s = 12) => ST('<rect x="4" y="5" width="16" height="16" rx="2"/><path d="M16 3v4M8 3v4M4 11h16"/>', s, 2),
+  plane: (s = 12) => ST('<path d="M16 10h4a2 2 0 0 1 0 4h-4l-4 7h-3l2-7H7l-2 2H2l2-4-2-4h3l2 2h4L9 3h3z"/>', s, 1.8),
+  dollar: (s = 12) => ST('<path d="M16.7 8A3 3 0 0 0 14 6h-4a3 3 0 0 0 0 6h4a3 3 0 0 1 0 6h-4a3 3 0 0 1-2.7-2M12 3v3m0 12v3"/>', s, 2),
+  clock: (s = 12) => ST('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>', s, 2),
+  personstar: (s = 18) => ST('<circle cx="10" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4"/><path d="m17.8 20.8-2.1 1.1.4-2.4-1.7-1.6 2.4-.3 1-2.1 1 2.1 2.4.3-1.7 1.6.4 2.4z"/>', s, 1.8),
+  back: (s = 20) => ST('<path d="M15 6l-6 6 6 6"/>', s, 2.2),
+  inbox: (s = 18) => ST('<path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 5h14l2 8v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-6z"/>', s, 1.8),
+  home: (s = 18) => ST('<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>', s, 1.8),
+  people: (s = 18) => ST('<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7"/>', s, 1.8),
+};
+const outIcon = (o, s = 12) => (o.ic === 'thumb' ? S24('thumb', s) : o.ic === 'thumbd' ? `<span style="display:inline-flex;transform:scaleY(-1)">${S24('thumb', s)}</span>` : o.ic === 'ban' ? S24('ban', s) : I[o.ic](s));
+const avatar = (init, size = 'sm', extra = '') => `<div class="shd-avatar shd-avatar--${size} ${extra}"><span>${init}</span></div>`;
+const NEW = (cls = '') => `nx-new ${cls}`;
+
+/* ═════════ actions: every write records who did it ═════════ */
+function openThread(id) { ui.sel = id; ui.pop = null; ui.composing = false; ui.draft = ''; const t = T(id); if (t && !t.deleted) t.unread = false; }
+function sendReply(text) {
+  const t = T(ui.sel); text = text.trim(); if (!text) return;
+  t.items.push({ k: 'out', by: S.me, at: tick(), text }); ui.composing = false; ui.draft = '';
+  toast('Email sent successfully.');
+}
+function setOutcome(id, to, silent) {
+  const t = T(id); const from = t.outcome; ui.pop = null; ui.m.sheet = null; if (from === to) return;
+  const ev = { k: 'ev', type: 'outcome', by: S.me, from, to, at: tick() };
+  t.outcome = to; t.items.push(ev);
+  if (!silent) toast('Outcome updated successfully', () => { t.outcome = from; t.items = t.items.filter((i) => i !== ev); });
+}
+const toggleLabel = (id, lid) => { const t = T(id); t.labels = t.labels.includes(lid) ? t.labels.filter((x) => x !== lid) : [...t.labels, lid]; };
+function labelError(n) { n = n.trim(); if (!n) return ''; if (n.length > 30) return 'Keep it to 30 characters.'; if (S.labels.some((l) => l.name.toLowerCase() === n.toLowerCase())) return `There is already a label called "${n}".`; return ''; }
+function createLabel(name, threadId) {
+  const n = name.trim(); if (!n || labelError(n)) return false;
+  const id = 'l' + Math.random().toString(36).slice(2, 8);
+  S.labels.push({ id, name: n }); if (threadId) toggleLabel(threadId, id);
+  toast(threadId ? `Label "${n}" created and added.` : `Label "${n}" created.`); return true;
+}
+function deleteThread(id) {
+  const t = T(id); const ev = { k: 'ev', type: 'deleted', by: S.me, at: tick() };
+  t.deleted = { by: S.me, at: ev.at }; t.items.push(ev); ui.modal = null; ui.m.sheet = null; ui.m.screen = 'list';
+  ui.sel = (visible()[0] || {}).id || null;
+  toast('Thread deleted for everyone. It stays in Deleted for 30 days.', () => { t.deleted = null; t.items = t.items.filter((i) => i !== ev); ui.sel = id; });
+}
+function restoreThread(id) {
+  const t = T(id); t.items.push({ k: 'ev', type: 'restored', by: S.me, at: tick() }); t.deleted = null;
+  ui.sel = (visible()[0] || {}).id || null; ui.m.screen = 'list'; toast(`Restored. ${t.name}'s thread is back in All.`);
+}
+let tt;
+function toast(text, undo) { ui.toast = { text, undo }; clearTimeout(tt); tt = setTimeout(() => { ui.toast = null; render(); }, 7000); }
+
+/* ═════════ WEB: production markup ═════════ */
+function webTabs() {
+  const unread = live().filter((t) => t.unread).length;
+  const delN = S.threads.filter((t) => t.deleted).length;
+  const badge = (n) => (n ? `<span class="regular-1 font-medium gray-txt-1 green-13 pr-1 pl-1 ml-1 br-7">${n}</span>` : '');
+  const tab = (v, label, extra = '', cls = '') => `<div class="${ui.feed === v ? 'active' : ''} ${cls}"><span class="regular-2 font-medium ${ui.feed === v ? 'blue-txt-11 active__email-nav' : 'gray-txt-30'}" data-act="feed" data-id="${v}" role="button" tabindex="0" style="cursor:pointer">${label}</span>${extra}</div>`;
+  const n = visible().length;
+  return `<div class="unified-inbox-content--row"><div class="row-left"><div class="d-flex gap-20 position-relative">
+      ${tab('all', 'All')}${tab('unread', 'Unread', badge(unread))}${tab('scheduled', 'Scheduled')}${tab('draft', 'Draft')}${tab('deleted', 'Deleted', badge(delN), NEW())}
+    </div></div>
+    <div class="row-right"><div class="refresh-unified-inbox" role="button" tabindex="0" data-act="refresh"><i class="sh-refresh"></i></div><div class="unified-inbox-action-separator"></div>
+      <div class="unified-filter-icon-container" role="button" tabindex="0" data-act="openfilters"><div class="unified-filter-icon-main d-flex align-items-center"><i class="sh-filter unified-inbox-action-icon"></i><span class="regular-2 font-medium line-height-20">Filters</span></div></div>
+      <div class="unified-inbox-action-separator"></div>
+      <div class="unified-inbox-pagination-wrapper"><p class="unified-inbox-pagination-info">${n ? `1-${n} of ${n}` : '0'} threads</p><div class="unified-inbox-pagination-btn"><div class="disabled">${I.chevL()}</div><div class="disabled">${I.chevR()}</div></div></div>
+    </div></div>`;
+}
+
+function appliedBar() {
+  const f = ui.filters; const chips = [];
+  if (f.outcomes.length) chips.push({ k: 'outcomes', l: 'Outcome', v: f.outcomes.map((o) => O(o).name).join(', ') });
+  if (f.replied.length) chips.push({ k: 'replied', l: 'Replied by', v: f.replied.map((r) => (r === 'none' ? 'Not replied yet' : r === 'ext' ? 'Outside Saleshandy' : USERS[r].name)).join(', '), nw: true });
+  if (f.labels.length) chips.push({ k: 'labels', l: 'Labels', v: f.labels.map((l) => L(l).name).join(', '), nw: true });
+  if (!chips.length || ui.feed === 'deleted') return '';
+  return `<div class="nx-applied">${chips.map((c) => `<span class="fc ${c.nw ? NEW() : ''}">${c.l}: <b>${esc(c.v)}</b><button data-act="rmfilter" data-id="${c.k}" aria-label="Remove ${c.l} filter">${I.x(10)}</button></span>`).join('')}<button class="clr" data-act="clearfilters">Clear all</button></div>`;
+}
+
+function mailItem(t) {
+  const m = lastMsg(t);
+  let prefix = '';
+  if (m && m.k === 'out') {
+    const nm = m.ext ? 'Outside Saleshandy' : who(m.by);
+    prefix = `<span class="gray-txt-15" style="display:inline-flex">${I.backup(14)}</span><span class="regular-1 line-height-18 gray-txt-15 ${m.ext || m.by !== S.me ? NEW() : ''}" style="margin:0 4px 0 2px;white-space:nowrap"><span class="nx-who">${esc(nm)}</span>:</span>`;
+  }
+  const o = O(t.outcome);
+  const cat = !t.deleted && t.outcome !== 'unc' ? `<div class="email-category ${SENT[o.s]}">${outIcon(o, 12)}<span>${o.name}</span></div>` : '';
+  let labels = '';
+  if (!t.deleted && t.labels.length) {
+    const max = t.labels.length > 2 ? 1 : 2; // ProspectTagsRow's default
+    labels = `<div class="nx-labelline ${NEW()}">${t.labels.slice(0, max).map((l) => `<div class="bs-tag bs-tag-blue-17 d-flex flex-row nx-lpill" data-act="labelfilter" data-id="${l}" role="button" tabindex="0" title="Show all threads labelled ${esc(L(l).name)}"><span class="regular-2">${esc(L(l).name)}</span></div>`).join('')}${t.labels.length > max ? `<div class="bs-tag bs-tag-blue-17 d-flex flex-row nx-more" title="${esc(t.labels.slice(max).map((l) => L(l).name).join(', '))}"><span class="regular-2">+${t.labels.length - max}</span></div>` : ''}</div>`;
+  }
+  const del = t.deleted ? `<span class="nx-delby ${NEW()}">${I.trash(11)}Deleted by ${who(t.deleted.by)} · ${listDate(t.deleted.at)}</span>` : '';
+  const seqPill = `<div class="shd-pills shd-pills--solid shd-pills--sm sequence-pill">${S24('send', 12)}<span class="pills-label">${esc(t.seq.length > 20 ? t.seq.slice(0, 20) + '...' : t.seq)}</span></div>`;
+  return `<div class="mail-item ${ui.sel === t.id ? 'active' : ''} ${labels ? 'nx-has-labels' : ''}" data-id="${t.id}">
+    <div class="mail-item--left"><label class="bs-checkbox-wrapper mail-item-checkbox"><span class="bs-checkbox"><input class="bs-checkbox-input" type="checkbox" aria-label="Select thread"><span class="bs-checkbox-inner"></span></span></label>${avatar(t.init, 'sm', 'mail-item-avatar')}</div>
+    <div class="mail-item--right" data-act="open" data-id="${t.id}" role="button" tabindex="0">
+      <h2><span class="name-wrapper"><span class="name">${esc(t.name)}</span>${t.unread && !t.deleted ? '<div class="dot"></div>' : ''}</span><span class="details-wrapper"><span class="duration">${listDate(lastAt(t))}</span></span></h2>
+      <h3>${esc(t.subject.replace('Re:', ''))}</h3>
+      <div style="display:flex;align-items:center">${prefix}<p>${esc(m ? m.text.replace(/\s+/g, ' ') : '')}</p></div>
+      <div class="unified-inbox-unSubScribed"><div class="d-flex align-items-center mt-1">${del || seqPill + cat}</div>${labels}</div>
+    </div></div>`;
+}
+
+function webList() {
+  const v = visible();
+  const search = `<span class="bs-input-affix-wrapper bs-input-affix-wrapper-md input-default search-input unified-inbox-search"><span class="mx-1 d-flex input-icons-left"><span class="bs-input-prefix"><i class="sh-search"></i></span></span><input class="bs-input-md bs-input" id="search" placeholder="Search Conversation" value="${esc(ui.search)}" autocomplete="off" aria-label="Search Conversation"></span>`;
+  let body = v.map(mailItem).join('');
+  if (!v.length) body = ui.feed === 'deleted'
+    ? `<div class="nx-empty ${NEW()}" style="padding:40px 24px;text-align:center"><b>Nothing deleted</b><span>When someone deletes a thread, it shows here for 30 days with their name on it.</span></div>`
+    : `<div class="nx-empty" style="padding:40px 24px;text-align:center"><b>No conversations found</b><span>Try changing your filters.</span></div>`;
+  const note = ui.feed === 'deleted' && v.length ? `<div class="${NEW('nx-new-block')}" style="padding:10px 24px;font-size:12px;line-height:16px;color:#6b7280;border-bottom:1px solid #e5e7eb;background:#fff">Deleted threads stay here for 30 days. Anyone in the workspace can restore them.</div>` : '';
+  return search + ' ' + note + body;
+}
+
+function sentBy(i) {
+  if (i.k === 'seq') return `<span class="nx-sentby seq ${NEW()}">Sequence, step ${i.step}</span>`;
+  if (i.ext) return `<span class="nx-sentby ext ${NEW()}">Sent outside Saleshandy</span>`;
+  return `<span class="nx-sentby ${NEW()}">Sent by ${who(i.by)}</span>`;
+}
+
+function messageCard(t, i) {
+  const fromProspect = i.k === 'in';
+  const init = fromProspect ? t.init : MAILBOX.init;
+  const name = fromProspect ? t.name : MAILBOX.name;
+  const email = fromProspect ? t.email : MAILBOX.email;
+  const to = fromProspect ? MAILBOX.email : t.email;
+  return `<div class="accordion__item"><div class="accordion__heading"><div class="accordion__button"><div class="mail-thread-header"><div class="d-flex justify-content-between align-items-center mail-thread-preview">
+      <div class="d-flex align-items-center">${avatar(init, 'lg')}<div class="email-sender-details"><h3><span class="sender-name">${esc(name)}</span><span class="email">&lt;${esc(email)}&gt;</span>${fromProspect ? '' : sentBy(i)}</h3>
+        <div class="d-flex"><p>To: ${esc(to)}</p><div class="d-flex align-items-center gray-txt-15 gray-16 bs-border-radius-4 pl-2 pr-2 bs-pt-2 bs-pb-2 ml-2 details">${I.info(12)}<span class="font-10 font-medium ml-1">Details</span></div></div></div></div>
+      <div class="d-flex align-items-center"><span class="mr-2"></span><p class="email-sent-time">${fullDate(i.at)}</p></div>
+    </div></div></div></div>
+    <div class="mail-thread-actions"><div title="Reply">${S18('reply', 18)}</div><div title="Forward">${I.fwd(18)}</div></div>
+    <div class="accordion__panel"><div class="email-preview-content"><div style="white-space:pre-wrap">${esc(i.text)}</div></div></div></div>`;
+}
+
+function activityLine(i) {
+  if (i.type === 'outcome') {
+    if (!i.by) return `<div class="nx-act ${NEW()}"><i></i><span>Outcome set to ${O(i.to).name} automatically · ${rel(i.at)}</span><i></i></div>`;
+    const what = i.from === 'unc' ? `set the outcome to <b>${O(i.to).name}</b>` : `changed the outcome from <b>${O(i.from).name}</b> to <b>${O(i.to).name}</b>`;
+    return `<div class="nx-act ${NEW()}"><i></i>${avatar(USERS[i.by].init, 'xs')}<span><b>${who(i.by)}</b> ${what} · ${rel(i.at)}</span><i></i></div>`;
+  }
+  if (i.type === 'deleted') return `<div class="nx-act red ${NEW()}"><i></i>${avatar(USERS[i.by].init, 'xs')}<span><b>${who(i.by)}</b> deleted this thread · ${rel(i.at)}</span><i></i></div>`;
+  if (i.type === 'restored') return `<div class="nx-act ${NEW()}"><i></i>${avatar(USERS[i.by].init, 'xs')}<span><b>${who(i.by)}</b> restored this thread · ${rel(i.at)}</span><i></i></div>`;
+  return '';
+}
+
+const searchBox = (id, ph, val = '') => `<div class="transfer-search"><span class="bs-input-affix-wrapper bs-input-affix-wrapper-md input-default transfer-search-input"><span class="mx-1 d-flex input-icons-left"><span class="bs-input-prefix"><i class="sh-search"></i></span></span><input class="bs-input-md bs-input" ${id ? `id="${id}"` : ''} placeholder="${ph}" value="${esc(val)}" autocomplete="off" aria-label="${ph}"></span></div>`;
+
+function outcomePop(t) {
+  return `<div class="nx-pop transfer-overlay custom-outcome-dropdown unified-inbox-filter-select" role="menu" aria-label="Outcome"><div class="transfer-container"><div class="transfer-body">
+    ${searchBox('', 'Search')}
+    <div class="transfer-content"><ul class="transfer-list"><div>${OUTCOMES.map((o) => `<li class="separator ${o.id === t.outcome ? 'active' : ''}" data-act="outcome" data-id="${o.id}" role="menuitemradio" aria-checked="${o.id === t.outcome}"><div class="d-flex align-items-center">${outIcon(o, 14)}<span class="ml-1">${o.name}</span></div></li>`).join('')}</div></ul></div>
+    <div class="nx-hint ${NEW()}">Your name is saved with the change.</div>
+  </div></div></div>`;
+}
+
+function labelsPop(t) {
+  if (ui.pop === 'labelNew') {
+    const err = labelError(ui.newName); const can = ui.newName.trim() && !err;
+    return `<div class="nx-pop transfer-overlay ${NEW()}" role="dialog" aria-label="New label"><div class="transfer-container"><div class="transfer-body"><form class="nx-form" data-form="newlabel">
+      <div class="ttl">New label</div>
+      <input id="lname" class="${err ? 'err' : ''}" value="${esc(ui.newName)}" placeholder="Label name" autocomplete="off" aria-label="Label name">${err ? `<div class="er">${esc(err)}</div>` : ''}
+      <div style="font-size:12px;line-height:16px;color:#6b7280">Everyone in this workspace will see and can use this label.</div>
+      <div class="btns"><button type="button" class="btn-ghost btn-ghost-outlined btn-ghost-md" data-act="cancelnew">Cancel</button><button type="submit" class="btn-solid btn-solid-primary btn-solid-md" style="width:auto" ${can ? '' : 'disabled'}>Create</button></div>
+    </form></div></div></div>`;
+  }
+  const q = ui.labelQuery.trim().toLowerCase();
+  const list = S.labels.filter((l) => !q || l.name.toLowerCase().includes(q));
+  const exact = S.labels.some((l) => l.name.toLowerCase() === q);
+  return `<div class="nx-pop transfer-overlay ${NEW()}" role="menu" aria-label="Labels"><div class="transfer-container"><div class="transfer-body">
+    ${searchBox('labelq', 'Find or create a label', ui.labelQuery)}
+    <div class="transfer-content"><ul class="transfer-list">
+      ${list.map((l) => `<li data-act="togglelabel" data-id="${l.id}" role="menuitemcheckbox" aria-checked="${t.labels.includes(l.id)}"><span class="nx-cbx ${t.labels.includes(l.id) ? 'on' : ''}"></span>${esc(l.name)}<span class="k">${labelCount(l.id)}</span></li>`).join('')}
+      ${q && !exact ? `<li class="nx-add" data-act="newlabel" data-name="${esc(ui.labelQuery.trim())}">${I.plus()}Create label "${esc(ui.labelQuery.trim())}"</li>` : `<li class="nx-add" data-act="newlabel">${I.plus()}New label</li>`}
+    </ul></div>
+    <div class="nx-hint">Labels are shared with everyone in this workspace.</div>
+  </div></div></div>`;
+}
+
+function webThread() {
+  const t = ui.sel && T(ui.sel);
+  if (!t || !visible().includes(t)) {
+    const none = live().filter((x) => !outs(x).length).length;
+    return `<div class="nx-empty"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.3" aria-hidden="true"><path d="M4 5h11a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9l-4 3v-3H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/><path d="M17 9h3a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-1v3l-4-3h-4a2 2 0 0 1-2-2v-1"/></svg><span>No conversations selected</span>${ui.feed === 'all' && none ? `<button class="${NEW()}" data-act="quicknone" style="border:0;background:none;color:#1d4ed8;font:500 12px Inter,sans-serif;cursor:pointer">${none} replies have no answer from the team yet</button>` : ''}</div>`;
+  }
+  const del = !!t.deleted; const o = O(t.outcome);
+  const labOpen = ui.pop === 'labels' || ui.pop === 'labelNew';
+  const right = del ? '' : `<div class="unified-inbox-mail-header--right">
+      <div class="nx-anchor nx-hlabels ${NEW()}">${t.labels.slice(0, 2).map((l) => `<div class="bs-tag bs-tag-blue-17 d-flex flex-row align-items-center nx-hchip"><span class="regular-2 nx-tagname" data-act="labelfilter" data-id="${l}" role="button" tabindex="0" title="Show all threads labelled ${esc(L(l).name)}">${esc(L(l).name)}</span><div class="d-flex flex-row align-items-center ml-1"><i class="sh-close" data-act="untag" data-id="${l}" role="button" tabindex="0" aria-label="Remove label ${esc(L(l).name)}"></i></div></div>`).join('')}${t.labels.length > 2 ? `<div class="bs-tag bs-tag-blue-17 d-flex flex-row nx-hmore" data-act="pop" data-id="labels" role="button" tabindex="0" title="${esc(t.labels.slice(2).map((l) => L(l).name).join(', '))}"><span class="regular-2">+${t.labels.length - 2}</span></div>` : ''}<div class="tag-button-container"><button class="tag-button ${labOpen ? 'open' : ''}" data-act="pop" data-id="labels" aria-haspopup="true" aria-expanded="${labOpen}">${I.tag(14)}<span>Labels</span></button></div>${labOpen ? labelsPop(t) : ''}</div>
+      <div class="nx-anchor"><div class="bs-select-box d-flex align-items-center email-category-renderer ${SENT[o.s]}" data-act="pop" data-id="outcome" role="button" tabindex="0" aria-haspopup="true" aria-expanded="${ui.pop === 'outcome'}"><div class="d-flex align-items-center">${outIcon(o, 14)}<span class="email-category-renderer blue-txt-15 ml-2">${o.name}</span></div><div class="bs-select-box-icon-wrapper">${I.chev(14)}</div></div>${ui.pop === 'outcome' ? outcomePop(t) : ''}</div>
+      ${t.finished ? '<div class="d-flex align-items-center"><p class="finished-message">Finished</p></div>' : ''}
+      <div class="mail-action-btn" title="Unsubscribe">${S24('ban', 18)}</div>
+      <div class="mail-action-btn" title="Mark as unread">${S18('unread', 18)}</div>
+      <div class="mail-action-btn nx-del" title="Delete" data-act="askdelete" role="button" tabindex="0" aria-label="Delete thread">${I.trash(18)}</div>
+    </div>`;
+  const header = `<div class="unified-inbox-mail-header"><div class="unified-inbox-mail-header--left"><div class="d-flex align-items-center">${avatar(t.init, 'lg', 'pointer')}<h1 class="unified-inbox-mail-subject ml-2"><span class="pointer">${esc(t.subject)}</span></h1></div>
+      <div class="d-flex gap-8"><div class="shd-pills shd-pills--solid shd-pills--sm cursor-pointer">${S24('send', 12)}<span class="pills-label">${esc(t.seq)}</span></div></div></div>${right}</div>`;
+  const purge = new Date(t.deleted ? t.deleted.at + 30 * 864e5 : 0);
+  const banner = del ? `<div class="nx-banner ${NEW()}">${avatar(USERS[t.deleted.by].init, 'xs')}<span><b>${who(t.deleted.by)}</b> deleted this thread ${rel(t.deleted.at)}. It will be removed for good on ${purge.getDate()} ${MON[purge.getMonth()]}.</span><button class="btn-solid btn-solid-primary btn-solid-md" data-act="restore" style="width:auto;gap:6px">${I.restore()}Restore</button></div>` : '';
+  const items = t.items.map((i) => (i.k === 'ev' ? activityLine(i) : messageCard(t, i))).join('');
+  const reply = del ? '' : ui.composing
+    ? `<div class="nx-composer"><textarea id="composer" placeholder="Write your reply" aria-label="Reply">${esc(ui.draft)}</textarea><div class="cb">${avatar(USERS[S.me].init, 'xs')}<span class="${NEW()}">Sending as <b style="color:#374151">${USERS[S.me].name}</b> from ${MAILBOX.email}</span><button class="btn-ghost btn-ghost-outlined btn-ghost-md" data-act="cancelreply">Cancel</button><button class="btn-solid btn-solid-primary btn-solid-md" data-act="send" ${ui.draft.trim() ? '' : 'disabled'}>Send</button></div></div>`
+    : `<button class="nx-replybtn" data-act="compose">${S18('reply', 16)}Reply</button>`;
+  return `${banner}${header}<div class="unified-inbox-mail-threads flex-grow-1" id="threadscroll"><div class="shd-accordion">${items}</div>${reply}</div>`;
+}
+
+function filterField(label, key, options, nw, ph) {
+  const sel = ui.draftFilters[key];
+  const open = ui.openSel === key;
+  const chips = sel.map((v) => `<span class="chipv">${esc((options.find((o) => o.v === v) || {}).l || v)}</span>`).join('');
+  return `<div class="prospects-filter-container d-flex flex-column bs-mb-20 ${nw ? NEW() : ''}"><div class="label-container label-text">${label}</div><div class="filter-container mt-1"><div class="nx-sel">
+    <div class="ctl" data-act="openselect" data-id="${key}" role="button" tabindex="0" aria-expanded="${open}">${chips || ph}<span class="chev">${I.chev(18)}</span></div>
+    ${open ? `<div class="opts" role="listbox">${options.map((o) => `<div data-act="pickfilter" data-key="${key}" data-id="${o.v}" role="option" aria-selected="${sel.includes(o.v)}"><span class="nx-cbx ${sel.includes(o.v) ? 'on' : ''}"></span>${esc(o.l)}<span class="k">${o.n ?? ''}</span></div>`).join('')}</div>` : ''}
+  </div></div></div>`;
+}
+const staticField = (label, ph) => `<div class="prospects-filter-container d-flex flex-column bs-mb-20"><div class="label-container label-text">${label}</div><div class="filter-container mt-1"><div class="nx-sel"><div class="ctl" style="cursor:default">${ph}<span class="chev">${I.chev(18)}</span></div></div></div></div>`;
+
+function filtersDrawer() {
+  const f = ui.draftFilters;
+  const count = (key, v) => { const probe = { ...f, [key]: [v] }; const keep = ui.feed; ui.feed = 'all'; const n = visible(probe).length; ui.feed = keep; return n; };
+  const repliedOpts = [...[S.me, ...ORDER.filter((u) => u !== S.me)].map((u) => ({ v: u, l: u === S.me ? `Me (${USERS[u].name})` : USERS[u].name })), { v: 'ext', l: 'Outside Saleshandy' }, { v: 'none', l: 'Not replied yet' }].map((o) => ({ ...o, n: count('replied', o.v) }));
+  return `<div class="modal-backdrop fade show" data-act="closefilters"></div><div class="modal fade prospects-filters-modal show ${ui.drawerOpening ? '' : 'nx-settled'}" data-act="closefilters" style="display:block" role="dialog" aria-modal="true" aria-label="Filters"><div class="modal-dialog" style="margin-left:auto"><div class="modal-content">
+    <div class="modal-header"><div class="modal-title h4"><span class="semibold-3">Filters</span></div><button class="close btn-solid btn-solid-default btn-solid-md" data-act="closefilters" aria-label="Close"><i class="sh-close"></i></button></div>
+    <div class="modal-body">
+      <div class="prospects-filter-container d-flex flex-column bs-mb-20"><div class="label-container label-text">Show Conversation</div><div class="nx-radios mt-1"><span><i class="on"></i>All</span><span><i></i>External</span><span><i></i>Sequence</span></div></div>
+      ${staticField('Client Associated', 'Search and Select Client Associated')}
+      ${staticField('Sequence Owner', 'Search and Select Owners')}
+      ${staticField('Sequence', 'Search and Select Sequence')}
+      ${staticField('Email Accounts', 'Search and Select Email Account')}
+      ${filterField('All Outcomes', 'outcomes', OUTCOMES.map((o) => ({ v: o.id, l: o.name, n: count('outcomes', o.id) })), false, 'Select Outcomes')}
+      ${filterField('Replied By', 'replied', repliedOpts, true, 'Select Teammates')}
+      ${filterField('Labels', 'labels', S.labels.map((l) => ({ v: l.id, l: l.name, n: count('labels', l.id) })), true, 'Select Labels')}
+      ${staticField('Date', 'Search and Select Date')}
+    </div>
+    <div class="modal-footer"><div class="d-flex flex-row align-self-start flex-grow-1"><button class="rst-btn btn-ghost btn-ghost-light btn-ghost-md" data-act="draftclear">Clear all</button><div class="d-flex flex-row justify-content-end flex-grow-1"><button class="btn-ghost btn-ghost-outlined btn-ghost-md" data-act="closefilters">Cancel</button><button class="ml-4 btn-solid btn-solid-primary btn-solid-md" data-act="applyfilters">Apply</button></div></div></div>
+  </div></div></div>`;
+}
+
+function deleteModal() {
+  const t = T(ui.sel);
+  return `<div class="modal-backdrop fade show" data-act="closemodal"></div><div class="modal fade show nx-confirm ${NEW()}" data-act="closemodal" style="display:block" role="dialog" aria-modal="true" aria-labelledby="dtitle"><div class="modal-dialog modal-dialog-centered"><div class="modal-content" style="padding:24px">
+      <h2 id="dtitle" style="margin:0 0 8px;font-size:18px;line-height:24px;font-weight:600;color:#1f2937">Delete this thread for everyone?</h2>
+      <p style="margin:0;color:#4b5563;font-size:14px">${esc(t.name)}'s thread will disappear from the inbox for everyone in this workspace, not just you.</p>
+      <div class="who">${ORDER.map((u) => avatar(USERS[u].init, 'xs')).join('')}<span>${ORDER.map((u) => USERS[u].name).join(', ').replace(/, ([^,]*)$/, ' and $1')} currently see this thread.</span></div>
+      <p style="margin:0;color:#4b5563;font-size:14px">It moves to Deleted for 30 days with your name on it. Anyone in the workspace can restore it from there.</p>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px"><button class="btn-ghost btn-ghost-outlined btn-ghost-md" id="cancel-del" data-act="closemodal">Cancel</button><button class="nx-btn-danger" data-act="confirmdelete">Delete thread</button></div>
+  </div></div></div>`;
+}
+
+function webView() {
+  return `<div class="web">
+    <nav class="nx-rail" aria-label="App"><svg class="lg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 3h16l-6 8h6L8 21l3-8H4z"/></svg><a href="#" aria-label="Home">${I.home()}</a><a href="#" aria-label="Sequences">${S24('send', 18)}</a><a class="on" href="#" aria-current="page" aria-label="Unified Inbox">${I.inbox()}</a><a href="#" aria-label="Prospects">${I.people()}</a></nav>
+    <div class="nx-main">
+      <div class="nx-pagehdr"><h2>Unified Inbox</h2><div class="me">${avatar(USERS[S.me].init, 'sm')}${USERS[S.me].name}</div></div>
+      <div class="unified-inbox p-0 flex-grow-1 overflow-hidden container-fluid"><div class="unified-inbox-content h-100 d-flex flex-column">
+        <div class="fade danger-alert alert show mobile-app-banner alert-primary-2" role="alert"><div class="d-flex align-items-center"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" style="color:#6d28d9" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M6 5.008a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-14Zm10 0H8v14h8v-14Z" clip-rule="evenodd"></path><path fill="currentColor" fill-rule="evenodd" d="M10 4.992a1 1 0 0 1 1-1h2a1 1 0 1 1 0 2h-2a1 1 0 0 1-1-1ZM12 15.992a1 1 0 0 1 1 1v.01a1 1 0 1 1-2 0v-.01a1 1 0 0 1 1-1Z" clip-rule="evenodd"></path></svg><span class="alert-message-text">Send and track customer replies on the go with the Unified Inbox Mobile App.</span><button class="shd-button shd-button--primary upgrade-btn ml-0 p-0" type="button" data-act="view" data-id="mobile"><span>Download Mobile App</span></button></div></div>
+        ${webTabs()}${appliedBar()}
+        <div class="unified-inbox-content--container flex-grow-1 overflow-hidden">
+          <div class="unified-inbox-mail-list" id="listscroll">${webList()}</div>
+          <div class="unified-inbox-mail-content d-flex flex-column">${webThread()}</div>
+        </div>
+      </div></div>
+    </div></div>`;
+}
+
+/* ═════════ MOBILE: drawn from the app's help-centre screenshots ═════════ */
+function mRow(t) {
+  const m = lastMsg(t); const o = O(t.outcome);
+  const pre = m && m.k === 'out' ? `<span class="${m.ext || m.by !== S.me ? NEW() : ''}">↩ ${m.ext ? 'Outside Saleshandy' : who(m.by)}: </span>` : '';
+  const pills = t.deleted
+    ? `<span class="m-pill del ${NEW()}">${I.trash(11)}Deleted by ${who(t.deleted.by)}</span>`
+    : `${t.labels.length ? `<span class="m-pill lab ${NEW()}" data-act="labelfilter" data-id="${t.labels[0]}" role="button" tabindex="0">${esc(L(t.labels[0]).name)}${t.labels.length > 1 ? ` +${t.labels.length - 1}` : ''}</span>` : ''}<span class="m-pill">${S24('send', 11)}${esc(t.seq.length > 14 ? t.seq.slice(0, 14) + '..' : t.seq)}</span>${t.outcome !== 'unc' ? `<span class="m-pill ${o.s === 'pos' ? 'pos' : o.s === 'neg' ? 'neg' : ''}">${outIcon(o, 11)}${o.name}</span>` : ''}`;
+  return `<div class="m-row" data-act="mopen" data-id="${t.id}" role="button" tabindex="0"><div class="av">${t.init}</div><div class="b">
+    <div class="n">${esc(t.name)}${t.unread && !t.deleted ? '<span class="d"></span>' : ''}<span class="dt">${listDate(lastAt(t)).replace(/(st|nd|rd|th)$/, '')}</span></div>
+    <div class="s">${esc(t.subject)}</div><div class="p">${pre}${esc(m ? m.text.replace(/\s+/g, ' ') : '')}</div><div class="pl">${pills}</div></div></div>`;
+}
+function mList() {
+  const f = ui.filters; const v = visible();
+  const chip = (label, on, act, id, nw) => `<span class="m-chip ${on ? 'on' : ''} ${nw ? NEW() : ''}" ${act ? `data-act="${act}" data-id="${id}"` : ''} role="button" tabindex="0">${esc(label)} ${I.chev(12)}</span>`;
+  const repl = f.replied.length ? `Replied by: ${f.replied.map((r) => (r === 'none' ? 'None' : r === 'ext' ? 'Outside' : USERS[r].name)).join(', ')}` : 'Replied by';
+  const labs = f.labels.length ? `Labels: ${f.labels.map((l) => L(l).name).join(', ')}` : 'Labels';
+  return `<div class="m-top"><div class="m-search">${I.search()}Search Conversation</div><div class="m-me">${USERS[S.me].init}</div></div>
+    <div class="m-chips">${(f.replied.length || f.labels.length || f.outcomes.length) ? '<span class="m-chip clr" data-act="clearfilters" role="button" tabindex="0">Clear</span>' : ''}${chip('Sequences', false)}${chip('Email Accounts', false)}${chip(f.outcomes.length ? f.outcomes.map((o) => O(o).name).join(', ') : 'Outcome', !!f.outcomes.length, 'msheet', 'foutcome')}${chip(repl, !!f.replied.length, 'msheet', 'freplied', true)}${chip(labs, !!f.labels.length, 'msheet', 'flabels', true)}</div>
+    <div class="m-tabs">${['all', 'unread', 'draft', 'scheduled'].map((x) => `<span class="${ui.feed === x ? 'on' : ''}" data-act="feed" data-id="${x}">${x[0].toUpperCase() + x.slice(1)}</span>`).join('')}<span class="${ui.feed === 'deleted' ? 'on' : ''} ${NEW()}" data-act="feed" data-id="deleted">Deleted</span></div>
+    <div class="m-list">${v.map(mRow).join('') || '<div style="padding:40px 20px;text-align:center;color:#6b7280;font-size:14px">No conversations</div>'}</div>`;
+}
+function mThread() {
+  const t = T(ui.sel); if (!t) return mList();
+  const o = O(t.outcome);
+  const items = t.items.map((i) => {
+    if (i.k === 'ev') {
+      if (i.type === 'outcome') return `<div class="m-act ${NEW()}"><i></i><span>${i.by ? `<b>${who(i.by)}</b> ${i.from === 'unc' ? 'set outcome to' : `changed ${O(i.from).name} to`} <b>${O(i.to).name}</b>` : `Outcome set to ${O(i.to).name} automatically`}</span><i></i></div>`;
+      if (i.type === 'deleted') return `<div class="m-act red ${NEW()}"><i></i><span><b>${who(i.by)}</b> deleted this thread</span><i></i></div>`;
+      return `<div class="m-act ${NEW()}"><i></i><span><b>${who(i.by)}</b> restored this thread</span><i></i></div>`;
+    }
+    const pin = i.k === 'in';
+    const tag = pin ? '' : i.k === 'seq' ? `<span class="m-pill ${NEW()}" style="height:18px">Sequence, step ${i.step}</span>` : i.ext ? `<span class="m-pill ${NEW()}" style="height:18px;color:#92400e;border-color:#fde68a;background:#fffbeb">Sent outside Saleshandy</span>` : `<span class="m-pill ${NEW()}" style="height:18px;color:#1e40af;border-color:#bfdbfe;background:#eff6ff">Sent by ${who(i.by)}</span>`;
+    return `<div class="m-msg"><div class="f"><b>${esc(pin ? t.name : MAILBOX.name)}</b>${tag}<span style="margin-left:auto">${listDate(i.at)}</span></div><div style="white-space:pre-wrap">${esc(i.text)}</div></div>`;
+  }).join('');
+  const del = !!t.deleted;
+  return `<div class="m-bar"><span class="m-ib" data-act="mback" role="button" tabindex="0" aria-label="Back">${I.back()}</span><span class="ttl">${esc(t.name)}</span>
+      ${del ? '' : `<span class="m-ib ${NEW()}" data-act="msheet" data-id="labels" role="button" tabindex="0" aria-label="Labels">${I.tag(17)}${t.labels.length ? `<span class="bd">${t.labels.length}</span>` : ''}</span><span class="m-ib" data-act="msheet" data-id="outcome" role="button" tabindex="0" aria-label="Outcome">${I.personstar()}</span><span class="m-ib" data-act="msheet" data-id="delete" role="button" tabindex="0" aria-label="Delete">${I.trash(17)}</span>`}</div>
+    ${del ? `<div class="m-banner ${NEW()}">Deleted by ${who(t.deleted.by)}, ${rel(t.deleted.at)}<b data-act="restore" role="button" tabindex="0">Restore</b></div>` : `<div class="m-meta"><span class="m-pill">${S24('send', 11)}${esc(t.seq)}</span><span class="m-pill ${o.s === 'pos' ? 'pos' : o.s === 'neg' ? 'neg' : ''}">${outIcon(o, 11)}${o.name}</span>${t.labels.map((l) => `<span class="m-pill lab ${NEW()}" data-act="labelfilter" data-id="${l}" role="button" tabindex="0">${esc(L(l).name)}</span>`).join('')}</div>`}
+    <div class="m-thread" id="mthread">${items}</div>
+    ${del ? '' : `<div class="m-reply"><span>Reply as ${USERS[S.me].name}…</span><b>${S24('send', 16)}</b></div>`}`;
+}
+function mSheet() {
+  const sh = ui.m.sheet; if (!sh) return '';
+  const t = ui.sel && T(ui.sel);
+  const wrap = (title, body, nw) => `<div class="m-sheet-bg" data-act="msheetclose"></div><div class="m-sheet ${nw ? NEW() : ''}" role="dialog" aria-label="${title}"><div class="grab"></div><div class="hd">${title}<button data-act="msheetclose" aria-label="Close">×</button></div>${body}</div>`;
+  if (sh === 'outcome' && t) return wrap('Email Outcome', OUTCOMES.map((o) => `<div class="opt" data-act="moutcome" data-id="${o.id}" role="button" tabindex="0">${outIcon(o, 18)}${o.name}<span class="rd ${o.id === t.outcome ? 'on' : ''}"></span></div>`).join('') + `<div class="note ${NEW()}">Your name is saved with the change.</div>`);
+  if (sh === 'labels' && t) return wrap('Labels', S.labels.map((l) => `<div class="opt" data-act="mtogglelabel" data-id="${l.id}" role="button" tabindex="0"><span class="nx-cbx ${t.labels.includes(l.id) ? 'on' : ''}"></span>${esc(l.name)}<span class="k">${labelCount(l.id)}</span></div>`).join('') + `<div class="opt add" data-act="msheet" data-id="labelnew" role="button" tabindex="0">${I.plus(16)}New label</div><div class="note">Labels are shared with everyone in this workspace.</div>`, true);
+  if (sh === 'labelnew') { const err = labelError(ui.m.newName); return wrap('New label', `<input id="mlname" value="${esc(ui.m.newName)}" placeholder="Label name" autocomplete="off" aria-label="Label name">${err ? `<div class="note" style="color:#b91c1c">${esc(err)}</div>` : ''}<div class="note">Everyone in this workspace will see and can use this label.</div><div class="acts"><button data-act="msheet" data-id="labels">Cancel</button><button class="p" data-act="mcreatelabel" ${ui.m.newName.trim() && !err ? '' : 'disabled'}>Create</button></div>`, true); }
+  if (sh === 'delete' && t) return wrap('Delete for everyone?', `<div class="note" style="font-size:14px;color:#374151;padding-top:0">${esc(t.name)}'s thread will disappear for Aisha J., Rohan K. and Meera S. It stays in Deleted for 30 days with your name on it, and anyone can restore it.</div><div class="acts"><button data-act="msheetclose">Cancel</button><button class="d" data-act="confirmdelete">Delete</button></div>`, true);
+  const pick = (key, opts) => wrap(sh === 'foutcome' ? 'Outcome' : sh === 'freplied' ? 'Replied by' : 'Labels', opts.map((o) => `<div class="opt" data-act="mpick" data-key="${key}" data-id="${o.v}" role="button" tabindex="0"><span class="nx-cbx ${ui.filters[key].includes(o.v) ? 'on' : ''}"></span>${esc(o.l)}</div>`).join(''), key !== 'outcomes');
+  if (sh === 'foutcome') return pick('outcomes', OUTCOMES.map((o) => ({ v: o.id, l: o.name })));
+  if (sh === 'freplied') return pick('replied', [...[S.me, ...ORDER.filter((u) => u !== S.me)].map((u) => ({ v: u, l: u === S.me ? `Me (${USERS[u].name})` : USERS[u].name })), { v: 'ext', l: 'Outside Saleshandy' }, { v: 'none', l: 'Not replied yet' }]);
+  if (sh === 'flabels') return pick('labels', S.labels.map((l) => ({ v: l.id, l: l.name })));
+  return '';
+}
+function mobileView() {
+  const scr = ui.m.screen === 'thread' && ui.sel && T(ui.sel) ? mThread() : mList();
+  return `<div class="mob-wrap"><div class="phone" aria-label="Mobile app"><div class="sb"><span>9:41</span><span>●●● ▮</span></div><div class="scr">${scr}${mSheet()}</div></div>
+    ${ui.view === 'mobile' ? `<div class="m-cap"><h3>Mobile app: what changes</h3><ul>
+      <li>Rows show the same label pill and the name of whoever replied ("↩ Rohan K.:"). Today it always says "You:".</li>
+      <li>Two new filter chips beside Outcome: Replied by and Labels. The Outcome chip exists today.</li>
+      <li>In a thread, a tag icon sits beside the outcome icon and opens a Labels sheet with create.</li>
+      <li>Each team reply names its sender. Outcome changes and deletes show as lines with a name.</li>
+      <li>Delete asks "for everyone?", and a Deleted tab holds threads for 30 days with Restore.</li>
+      <li>Purple dashed outlines mark what is new. Drawn from the app's help-centre screenshots, not its code.</li></ul></div>` : ''}</div>`;
+}
+
+/* ═════════ render ═════════ */
+function renderDemo() {
+  const seg = (k, opts) => `<span class="seg">${opts.map(([v, l]) => `<button data-act="${k}" data-id="${v}" aria-pressed="${(k === 'view' ? ui.view : S.me) === v}">${l}</button>`).join('')}</span>`;
+  document.getElementById('demo').innerHTML = `<span class="t">Prototype</span>
+    <span>Show ${seg('view', [['web', 'Web'], ['mobile', 'Mobile app'], ['both', 'Both']])}</span>
+    <span>Viewing as ${seg('as', ORDER.map((u) => [u, USERS[u].name]))}</span>
+    <label>Jump to <select data-act="step"><option value="">a step</option>${STEPS.map((s, i) => `<option value="${i + 1}" ${String(ui.step) === String(i + 1) ? 'selected' : ''}>${s}</option>`).join('')}</select></label>
+    <label class="tg"><input type="checkbox" id="shownew" ${ui.showNew ? 'checked' : ''}> Highlight what's new</label>
+    <button class="btnr" data-act="reset">Reset</button>
+    <span class="key"><i></i>new, not in production</span>`;
+}
+function render() {
+  renderDemo();
+  const focusId = document.activeElement && document.activeElement.id;
+  const caret = focusId && document.activeElement.selectionStart;
+  const ls = document.getElementById('listscroll'); const lsTop = ls ? ls.scrollTop : 0;
+  const ts = document.getElementById('threadscroll'); const tsTop = ts ? ts.scrollTop : 0;
+  const db = document.querySelector('.prospects-filters-modal .modal-body'); const dbTop = db ? db.scrollTop : 0;
+  const dopts = document.querySelector('.prospects-filters-modal .opts'); const doTop = dopts ? dopts.scrollTop : 0;
+  const stage = document.getElementById('stage');
+  stage.className = `stage ${ui.showNew ? 'show-new' : ''} ${ui.view === 'both' ? 'both' : ''}`;
+  stage.innerHTML = (ui.view !== 'mobile' ? webView() : '') + (ui.view !== 'web' ? mobileView() : '');
+  const ov = document.getElementById('overlay');
+  ov.className = ui.showNew ? 'show-new' : '';
+  ov.innerHTML = (ui.view !== 'mobile' && ui.draftFilters ? filtersDrawer() : '') + (ui.view !== 'mobile' && ui.modal === 'delete' ? deleteModal() : '') + (ui.toast ? `<div class="nx-toast" role="status"><span>${esc(ui.toast.text)}</span>${ui.toast.undo ? '<button data-act="undo">Undo</button>' : ''}</div>` : '');
+  const nl = document.getElementById('listscroll'); if (nl) nl.scrollTop = lsTop;
+  const ndb = document.querySelector('.prospects-filters-modal .modal-body'); if (ndb) ndb.scrollTop = dbTop;
+  const ndo = document.querySelector('.prospects-filters-modal .opts'); if (ndo) ndo.scrollTop = doTop;
+  if (ui.drawerOpening) { ui.drawerOpening = false; const dm = document.querySelector('.prospects-filters-modal'); if (dm) dm.addEventListener('animationend', () => dm.classList.add('nx-settled'), { once: true }); }
+  const nt = document.getElementById('threadscroll'); if (nt) nt.scrollTop = ui.scrollEnd ? nt.scrollHeight : tsTop;
+  const mt = document.getElementById('mthread'); if (mt && ui.scrollEnd) mt.scrollTop = mt.scrollHeight;
+  ui.scrollEnd = false;
+  const auto = ui.modal === 'delete' ? 'cancel-del' : ui.pop === 'labelNew' ? 'lname' : ui.pop === 'labels' ? 'labelq' : ui.composing ? 'composer' : ui.m.sheet === 'labelnew' ? 'mlname' : null;
+  const target = (focusId && document.getElementById(focusId)) || (auto && document.getElementById(auto));
+  if (target) { target.focus({ preventScroll: true }); if (focusId && caret != null && target.setSelectionRange) try { target.setSelectionRange(caret, caret); } catch (e) {} }
+}
+
+/* ═════════ steps: the journey, replayed with the same actions ═════════ */
+function goStep(n) {
+  const view = ui ? ui.view : 'web', showNew = ui ? ui.showNew : true;
+  seed(); ui.view = view; ui.showNew = showNew; ui.step = n;
+  if (n >= 2) { openThread('tom'); ui.scrollEnd = true; ui.m.screen = 'thread'; }
+  if (n >= 3) { toggleLabel('tom', 'pricing'); ui.pop = 'labels'; ui.m.sheet = 'labels'; }
+  if (n >= 4) { T('tom').items.push({ k: 'in', at: d(9, 10, 30), text: "One more thing: we're also talking to one of your competitors." }); ui.pop = 'labelNew'; ui.newName = 'Competitor'; ui.m.sheet = 'labelnew'; ui.m.newName = 'Competitor'; }
+  if (n >= 5) {
+    createLabel('Competitor', 'tom'); ui.pop = null; ui.m.sheet = null;
+    T('tom').items.push({ k: 'in', at: d(9, 10, 40), text: 'Thursday at 3 works for a walkthrough. Can you send an invite?' });
+    T('tom').items.push({ k: 'out', by: 'aj', at: tick(), text: "Invite sent for Thursday at 3 PM. I'll bring pricing for both plants." });
+    setOutcome('tom', 'mtg'); ui.scrollEnd = true;
+  }
+  if (n >= 6) { ui.toast = null; openThread('ben'); ui.modal = 'delete'; ui.m.screen = 'thread'; ui.m.sheet = 'delete'; }
+  if (n >= 7) { deleteThread('ben'); ui.toast = null; clock += 47 * 60e3; S.me = 'ms'; ui.feed = 'deleted'; openThread('ben'); ui.m.screen = 'thread'; }
+  if (n >= 8) { ui.feed = 'all'; ui.sel = null; ui.m.screen = 'list'; ui.filters = { outcomes: [], replied: ['aj'], labels: [] }; ui.draftFilters = { outcomes: [], replied: ['aj'], labels: [] }; ui.openSel = 'replied'; ui.m.sheet = 'freplied'; }
+  if (n < 5) ui.toast = null;
+  render();
+}
+
+/* ═════════ events ═════════ */
+const ACT = {
+  view: (id) => { ui.view = id; }, as: (id) => { S.me = id; ui.pop = null; ui.modal = null; },
+  reset: () => { const v = ui.view, sn = ui.showNew; seed(); ui.view = v; ui.showNew = sn; ui.step = ''; },
+  feed: (id) => { ui.feed = id; ui.sel = null; ui.pop = null; ui.m.screen = 'list'; },
+  open: (id) => { openThread(id); ui.scrollEnd = true; },
+  pop: (id) => { ui.pop = ui.pop === id || (id === 'labels' && ui.pop === 'labelNew') ? null : id; ui.labelQuery = ''; },
+  outcome: (id) => { setOutcome(ui.sel, id); ui.scrollEnd = true; },
+  togglelabel: (id) => toggleLabel(ui.sel, id),
+  newlabel: (id, el) => { ui.newName = el.dataset.name || ''; ui.pop = 'labelNew'; },
+  cancelnew: () => { ui.pop = 'labels'; ui.newName = ''; },
+  askdelete: () => { ui.pop = null; ui.modal = 'delete'; },
+  closemodal: () => { ui.modal = null; },
+  confirmdelete: () => deleteThread(ui.sel),
+  restore: () => restoreThread(ui.sel),
+  compose: () => { ui.composing = true; ui.scrollEnd = true; }, cancelreply: () => { ui.composing = false; ui.draft = ''; },
+  send: () => { sendReply(ui.draft); ui.scrollEnd = true; },
+  undo: () => { if (ui.toast && ui.toast.undo) ui.toast.undo(); ui.toast = null; },
+  openfilters: () => { ui.draftFilters = JSON.parse(JSON.stringify(ui.filters)); ui.openSel = null; ui.drawerOpening = true; },
+  closefilters: () => { ui.draftFilters = null; ui.openSel = null; },
+  openselect: (id) => { ui.openSel = ui.openSel === id ? null : id; },
+  pickfilter: (id, el) => { const k = el.dataset.key; const a = ui.draftFilters[k]; ui.draftFilters[k] = a.includes(id) ? a.filter((x) => x !== id) : [...a, id]; },
+  draftclear: () => { ui.draftFilters = emptyF(); },
+  applyfilters: () => { ui.filters = ui.draftFilters; ui.draftFilters = null; ui.openSel = null; ui.sel = null; if (ui.feed === 'deleted') ui.feed = 'all'; },
+  rmfilter: (id) => { ui.filters = { ...ui.filters, [id]: [] }; },
+  clearfilters: () => { ui.filters = emptyF(); },
+  quicknone: () => { ui.filters = { outcomes: [], replied: ['none'], labels: [] }; },
+  refresh: () => {},
+  labelfilter: (id) => { ui.filters = { ...ui.filters, labels: [id] }; ui.pop = null; if (ui.feed === 'deleted') ui.feed = 'all'; if (ui.sel && !visible().some((t) => t.id === ui.sel)) ui.sel = null; ui.m.screen = 'list'; },
+  untag: (id) => toggleLabel(ui.sel, id),
+  mopen: (id) => { openThread(id); ui.m.screen = 'thread'; ui.scrollEnd = true; },
+  mback: () => { ui.m.screen = 'list'; ui.m.sheet = null; },
+  msheet: (id) => { ui.m.sheet = id; if (id === 'labelnew') ui.m.newName = ''; },
+  msheetclose: () => { ui.m.sheet = null; },
+  moutcome: (id) => { setOutcome(ui.sel, id); ui.scrollEnd = true; },
+  mtogglelabel: (id) => toggleLabel(ui.sel, id),
+  mcreatelabel: () => { if (createLabel(ui.m.newName, ui.sel)) { ui.m.sheet = 'labels'; ui.m.newName = ''; } },
+  mpick: (id, el) => { const k = el.dataset.key; const a = ui.filters[k]; ui.filters = { ...ui.filters, [k]: a.includes(id) ? a.filter((x) => x !== id) : [...a, id] }; },
+};
+const KEEP_POP = ['pop', 'togglelabel', 'newlabel', 'cancelnew', 'outcome'];
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-act]');
+  const inPop = e.target.closest('.nx-pop, .nx-sel');
+  if (el && el.dataset.act === 'labelfilter') e.stopPropagation();
+  if (!el) { if (!inPop && (ui.pop || ui.openSel)) { ui.pop = null; ui.openSel = null; render(); } return; }
+  const act = el.dataset.act; if (act === 'step') return;
+  // the modal wrapper spans the page: only a click on the dimmed area itself closes it
+  if ((act === 'closefilters' || act === 'closemodal') && el.classList.contains('modal') && e.target !== el) return;
+  if (el.tagName === 'A') e.preventDefault();
+  if (!KEEP_POP.includes(act)) ui.pop = null;
+  if (!['openselect', 'pickfilter'].includes(act)) ui.openSel = null;
+  if (ACT[act]) ACT[act](el.dataset.id, el);
+  render();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { if (ui.modal) ui.modal = null; else if (ui.draftFilters) ui.draftFilters = null; else if (ui.pop) ui.pop = null; else if (ui.m.sheet) ui.m.sheet = null; else return; render(); return; }
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('[role="button"][data-act]')) { e.preventDefault(); e.target.click(); return; }
+  if (e.target.id === 'labelq' && e.key === 'Enter') {
+    e.preventDefault(); const q = ui.labelQuery.trim(); if (!q) return;
+    const hit = S.labels.find((l) => l.name.toLowerCase() === q.toLowerCase());
+    if (hit) { toggleLabel(ui.sel, hit.id); ui.labelQuery = ''; } else { ui.newName = q; ui.pop = 'labelNew'; }
+    render();
+  }
+  if (e.target.id === 'composer' && e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); sendReply(ui.draft); ui.scrollEnd = true; render(); }
+});
+document.addEventListener('input', (e) => {
+  const t = e.target;
+  if (t.id === 'search') { ui.search = t.value; render(); }
+  else if (t.id === 'labelq') { ui.labelQuery = t.value; render(); }
+  else if (t.id === 'lname') { ui.newName = t.value; render(); }
+  else if (t.id === 'mlname') { ui.m.newName = t.value; render(); }
+  else if (t.id === 'composer') { ui.draft = t.value; const b = document.querySelector('[data-act="send"]'); if (b) b.disabled = !t.value.trim(); }
+});
+document.addEventListener('change', (e) => {
+  if (e.target.dataset.act === 'step' && e.target.value) goStep(+e.target.value);
+  if (e.target.id === 'shownew') { ui.showNew = e.target.checked; render(); }
+});
+document.addEventListener('submit', (e) => { if (e.target.dataset.form === 'newlabel') { e.preventDefault(); if (createLabel(ui.newName, ui.sel)) { ui.pop = 'labels'; ui.newName = ''; } render(); } });
+
+const mm = location.hash.match(/step=(\d)/); const mv = location.hash.match(/view=(web|mobile|both)/);
+seed(); if (mv) ui.view = mv[1];
+if (mm) goStep(+mm[1]); else { ui.step = ''; render(); }
+</script>
+</body>
+</html>

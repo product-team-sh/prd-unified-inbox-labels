@@ -1,0 +1,843 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unified Inbox for teams: labels, and who did what</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+:root{
+  --bg:#ffffff; --bg-secondary:#F9FAFB; --bg-tertiary:#F3F4F6;
+  --border:#E5E7EB; --border-strong:#D1D5DB;
+  --ink:#111827; --ink-secondary:#374151; --ink-tertiary:#6B7280; --ink-quiet:#9CA3AF;
+  --primary:#1D4ED8; --primary-hover:#1E40AF; --primary-tint:#EFF6FF; --primary-tint-border:#BFDBFE;
+  --success:#047857; --success-tint:#ECFDF5; --success-border:#A7F3D0;
+  --warning:#B45309; --warning-tint:#FFFBEB; --warning-border:#FDE68A;
+  --danger:#B91C1C; --danger-tint:#FEF2F2; --danger-border:#FECACA;
+  --radius-sm:4px; --radius-md:8px; --radius-lg:12px;
+  --content-w:760px;
+}
+*{box-sizing:border-box}
+html{color-scheme:light}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  font-size:15.5px;line-height:1.68;letter-spacing:-.001em;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  font-feature-settings:'cv11','ss01';text-rendering:optimizeLegibility}
+code{font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;font-size:.86em;
+  background:var(--bg-tertiary);color:#B91C1C;padding:.1em .4em;border-radius:4px;border:1px solid var(--border)}
+a{color:var(--primary);text-decoration:none}
+a:hover{text-decoration:underline}
+h1,h2,h3,h4{font-weight:700;letter-spacing:-.01em;color:var(--ink)}
+::selection{background:var(--primary-tint-border)}
+
+.progress-rail{position:fixed;top:0;left:0;height:3px;background:var(--primary);
+  z-index:50;width:0%;transition:width .1s linear}
+
+.top-btn{position:fixed;right:28px;bottom:28px;width:42px;height:42px;border-radius:50%;
+  background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 14px rgba(17,24,39,.22);opacity:0;pointer-events:none;
+  transition:opacity .18s,transform .18s;font-size:16px;z-index:40;text-decoration:none}
+.top-btn.show{opacity:1;pointer-events:auto}
+.top-btn:hover{transform:translateY(-2px);text-decoration:none}
+
+.shell{display:flex;max-width:1240px;margin:0 auto}
+.sidebar{width:248px;flex-shrink:0;position:sticky;top:0;align-self:flex-start;
+  height:100vh;overflow-y:auto;padding:32px 16px 32px 24px;border-right:1px solid var(--border)}
+.sidebar-title{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-quiet);margin:0 0 12px 8px}
+.toc-l2{display:block;padding:7px 8px;border-radius:6px;font-size:13.5px;font-weight:600;
+  color:var(--ink-secondary)}
+.toc-l2:hover{background:var(--bg-secondary);text-decoration:none;color:var(--ink)}
+.toc-l2.active{background:var(--primary-tint);color:var(--primary-hover)}
+.toc-l3{display:block;padding:5px 8px 5px 22px;border-radius:6px;font-size:12.5px;
+  color:var(--ink-tertiary);border-left:2px solid transparent}
+.toc-l3:hover{background:var(--bg-secondary);text-decoration:none;color:var(--ink-secondary)}
+.toc-l3.active{color:var(--primary-hover);font-weight:600;border-left-color:var(--primary)}
+.toc-num{display:inline-block;min-width:20px;font-family:ui-monospace,monospace;font-size:.85em;
+  color:var(--primary);margin-right:4px}
+
+.main{flex:1;min-width:0;padding:56px 48px 120px}
+.content-col{max-width:var(--content-w)}
+
+.doc-header{max-width:var(--content-w);margin-bottom:8px;position:relative}
+.eyebrow{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:700;
+  letter-spacing:.09em;text-transform:uppercase;color:var(--primary);margin:0 0 12px}
+.eyebrow::before{content:'';width:16px;height:2px;border-radius:1px;background:var(--primary)}
+.doc-header h1{font-size:36px;line-height:1.14;margin:0 0 4px;letter-spacing:-.02em;text-wrap:balance}
+
+.proto-embed{display:flex;align-items:center;gap:16px;max-width:var(--content-w);margin:28px 0 44px;
+  padding:18px 20px;border:1px solid var(--primary-tint-border);border-radius:var(--radius-lg);
+  background:var(--primary-tint);text-decoration:none;transition:background .12s}
+.proto-embed:hover{background:var(--primary-tint-border);text-decoration:none}
+.proto-embed-icon{flex-shrink:0;width:38px;height:38px;border-radius:50%;background:var(--primary);
+  color:#fff;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700}
+.proto-embed-title{margin:0 0 3px;font-size:14px;font-weight:700;color:var(--primary-hover)}
+.proto-embed-sub{margin:0;font-size:12.5px;color:var(--ink-secondary);max-width:520px}
+
+.sec{max-width:var(--content-w);padding-top:8px}
+.sec-head{display:flex;align-items:baseline;gap:12px;margin:52px 0 20px}
+.sec:first-of-type .sec-head{margin-top:8px}
+.sec-num{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;
+  width:31px;height:31px;border-radius:9px;background:linear-gradient(155deg,var(--primary),var(--primary-hover));
+  color:#fff;font-size:14px;font-weight:700;font-family:ui-monospace,monospace;
+  box-shadow:0 2px 6px rgba(29,78,216,.28)}
+.sec-head h2{font-size:22px;margin:0}
+
+.subsec{margin:36px 0}
+.subsec h3{font-size:16.5px;display:flex;align-items:center;gap:9px;margin:0 0 14px}
+.subsec-num{font-family:ui-monospace,monospace;font-size:12px;font-weight:700;color:var(--primary);
+  background:var(--primary-tint);border:1px solid var(--primary-tint-border);
+  padding:2px 7px;border-radius:5px}
+
+h4{display:flex;align-items:center;gap:10px;font-size:12px;font-weight:700;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--ink-tertiary);margin:36px 0 14px;padding-top:20px}
+h4::before{content:'';flex-shrink:0;width:14px;height:14px;border-radius:4px;
+  background:var(--primary-tint);border:1px solid var(--primary-tint-border)}
+h4::after{content:'';flex:1;height:1px;background:var(--border)}
+
+p{margin:0 0 15px;text-wrap:pretty}
+ul,ol{margin:0 0 15px;padding-left:21px}
+li{margin:0 0 9px;padding-left:2px}
+li::marker{color:var(--ink-quiet)}
+ul.nested{margin:9px 0 0;padding-left:19px}
+ul.nested li{margin-bottom:6px;font-size:.95em;color:var(--ink-secondary)}
+strong{font-weight:650;color:var(--ink)}
+em{color:var(--ink-secondary);font-style:italic}
+
+.hr{height:1px;background:var(--border);margin:32px 0 0;max-width:var(--content-w)}
+.hr + .sec .sec-head{margin-top:40px}
+
+figure{margin:20px 0;max-width:900px}
+figure img{width:100%;display:block;border:1px solid var(--border);border-radius:var(--radius-md);
+  box-shadow:0 1px 3px rgba(17,24,39,.06)}
+figcaption{margin-top:9px;font-size:12.5px;color:var(--ink-tertiary);font-style:italic;line-height:1.5}
+
+.tbl-wrap{max-width:100%;overflow-x:auto;margin:16px 0 22px;border:1px solid var(--border);
+  border-radius:var(--radius-md)}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:13.5px}
+th{text-align:left;background:var(--bg-secondary);color:var(--ink-tertiary);
+  font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  padding:10px 14px;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--border);vertical-align:top;color:var(--ink-secondary)}
+tr:last-child td{border-bottom:none}
+tr.row-quiet td{color:var(--ink-tertiary)}
+tr:hover td{background:var(--bg-secondary)}
+
+.id-pill{display:inline-block;font-family:ui-monospace,monospace;font-size:11.5px;font-weight:700;
+  color:var(--primary);background:var(--primary-tint);border:1px solid var(--primary-tint-border);
+  padding:2px 7px;border-radius:5px;white-space:nowrap}
+.id-pill.struck{color:var(--ink-quiet);background:var(--bg-tertiary);border-color:var(--border);
+  text-decoration:line-through}
+
+.pri-cell{white-space:nowrap}
+.pri{display:inline-flex;align-items:center;font-size:11px;font-weight:700;letter-spacing:.03em;
+  padding:3px 8px;border-radius:5px;font-family:ui-monospace,monospace}
+.pri-P0{color:var(--danger);background:var(--danger-tint);border:1px solid var(--danger-border)}
+.pri-P1{color:var(--warning);background:var(--warning-tint);border:1px solid var(--warning-border)}
+.pri-P2{color:var(--ink-tertiary);background:var(--bg-tertiary);border:1px solid var(--border)}
+.pri-note{font-size:10.5px;color:var(--ink-tertiary);margin-top:4px;font-weight:500;
+  font-family:'Inter',sans-serif;max-width:130px;line-height:1.35}
+
+.stepper{display:flex;align-items:flex-start;max-width:var(--content-w);margin:8px 0 28px;
+  padding:20px 8px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-lg)}
+.step{display:flex;flex-direction:column;align-items:center;flex-shrink:0;width:76px}
+.step-dot{width:34px;height:34px;border-radius:50%;background:var(--primary);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;
+  font-family:ui-monospace,monospace;flex-shrink:0}
+.step-final .step-dot{background:var(--ink);}
+.step-label{margin-top:8px;font-size:11px;text-align:center;color:var(--ink-tertiary);
+  line-height:1.35;font-weight:600}
+.step-line{flex:1;height:2px;background:var(--border-strong);margin-top:17px;min-width:8px}
+
+@media (max-width: 980px){
+  .sidebar{display:none}
+  .main{padding:32px 20px 80px}
+}
+</style>
+<style>figure figcaption{margin:0 0 8px}</style>
+<style>
+.tbl-wrap td img{max-width:100%;height:auto;border:1px solid var(--border);border-radius:var(--radius-md)}
+figure img{width:100%;height:auto}
+</style>
+</head>
+<body>
+<div class="progress-rail"></div>
+<div class="shell">
+  <nav class="sidebar">
+    <p class="sidebar-title">Contents</p>
+<a class="toc-l2" href="#1-problem"><span class="toc-num">1</span>Problem</a>
+<a class="toc-l2" href="#2-why-this-approach"><span class="toc-num">2</span>Why this approach</a>
+<a class="toc-l2" href="#3-what-we-re-building"><span class="toc-num">3</span>What we're building</a>
+<a class="toc-l2" href="#4-user-stories"><span class="toc-num">4</span>User stories</a>
+<a class="toc-l2" href="#5-decisions"><span class="toc-num">5</span>Decisions</a>
+<a class="toc-l2" href="#6-surfaces"><span class="toc-num">6</span>Surfaces</a>
+<a class="toc-l3" href="#6-1-inbox-list-web">6.1 Inbox list (web)</a>
+<a class="toc-l3" href="#6-2-thread-web">6.2 Thread (web)</a>
+<a class="toc-l3" href="#6-3-labels-menu">6.3 Labels menu</a>
+<a class="toc-l3" href="#6-4-delete-and-deleted">6.4 Delete and Deleted</a>
+<a class="toc-l3" href="#6-5-filters-drawer">6.5 Filters drawer</a>
+<a class="toc-l3" href="#6-6-mobile-app">6.6 Mobile app</a>
+<a class="toc-l3" href="#acceptance-criteria">Acceptance criteria</a>
+<a class="toc-l2" href="#7-reconciliation-with-existing-behaviour"><span class="toc-num">7</span>Reconciliation with existing behaviour</a>
+<a class="toc-l2" href="#8-cross-cutting"><span class="toc-num">8</span>Cross-cutting</a>
+<a class="toc-l2" href="#9-implementation-notes"><span class="toc-num">9</span>Implementation notes</a>
+<a class="toc-l2" href="#10-measurement"><span class="toc-num">10</span>Measurement</a>
+<a class="toc-l2" href="#11-rollout"><span class="toc-num">11</span>Rollout</a>
+<a class="toc-l2" href="#12-open-questions"><span class="toc-num">12</span>Open questions</a>
+<a class="toc-l2" href="#13-priority-timeline"><span class="toc-num">13</span>Priority &amp; timeline</a>
+<a class="toc-l2" href="#appendix-reference-index"><span class="toc-num"></span>Appendix – reference index</a>
+  </nav>
+  <main class="main">
+<header class="doc-header"><p class="eyebrow">Product Requirements Document</p><h1>PRD – Unified Inbox for teams: labels, and who did what</h1></header>
+<p><strong>Design of record:</strong> <a href="https://product-team-sh.github.io/prd-unified-inbox-labels/prototype/">prototype</a> · <strong>Status:</strong> Ready for dev review</p>
+<p>The prototype is built on the production Unified Inbox (webui <code>main</code> at <code>2ae90d3</code>, production stylesheet), so anything not outlined in purple is today's product. These are review aids, not product UI:</p>
+<ul>
+<li>the dark strip at the top (Show web or mobile, Viewing as, Jump to a step, Highlight what's new, Reset)</li>
+<li>the purple dashed outlines, which mark what is new</li>
+<li>the simplified app rail and page header</li>
+</ul>
+<hr />
+<section id="1-problem" class="sec"><div class="sec-head"><span class="sec-num">1</span><h2>Problem</h2></div>
+
+<ul>
+<li><strong>Nobody can tell who did what in a shared inbox.</strong> A reply sent from the inbox shows the mailbox's name, so when several people reply from one mailbox the team can't tell who answered. Outcome changes leave no trace of who made them.</li>
+<li><strong>A delete removes the thread for everyone, with no name and no way back.</strong> In one escalated account, threads deleted by one team member emptied the inbox for the whole team. Support recovered them from the backend more than once and needed a tech ticket to find out who deleted them (<a href="https://app.basecamp.com/4378325/buckets/16408283/todos/10049758002">escalation</a>).</li>
+<li><strong>Teams have no way to organise threads beyond the outcome.</strong> Teams fall back to Gmail labels to mark who is on what (<a href="https://3.basecamp.com/4378325/buckets/15549277/question_answers/10389240675">check-in</a>).</li>
+</ul>
+</section>
+<section id="2-why-this-approach" class="sec"><div class="sec-head"><span class="sec-num">2</span><h2>Why this approach</h2></div>
+
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>Decision</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Owner field and assignment (Mine / Unassigned views, handover)</td>
+<td>Rejected: adds process the team did not ask for. Labels and "Sent by" cover the visibility need.</td>
+</tr>
+<tr>
+<td>Warning before a duplicate reply</td>
+<td>Rejected for now (see D4 and OQ4).</td>
+</tr>
+<tr>
+<td>Per-person visibility (each person sees only their own replies)</td>
+<td>Out of scope. Two accounts asked for it; per-client separation is Workspaces.</td>
+</tr>
+<tr>
+<td><strong>Labels plus attribution of every team action</strong></td>
+<td><strong>Chosen.</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Evidence</strong> (searched 11 Oct 2026: Basecamp, Jira across all projects, Intercom export):</p>
+<ul>
+<li>1 escalation about deletes nobody could trace (measured).</li>
+<li>2 asks to restrict who sees which replies, and 1 ask to route replies to a manager who hands them out (measured). Both are out of scope here.</li>
+<li>0 customer asks for labels. The only ask is the internal check-in (measured).</li>
+<li>Intercom coverage: 26,854 of about 129,000 closed conversations, subject and first message only, up to 21 Aug 2026 (measured). Live Intercom was not searched.</li>
+<li>How many paying accounts have two or more users replying from the inbox: <strong>not measured</strong> (OQ1).</li>
+</ul>
+<p>We do not claim demand for labels from customers. The case rests on attribution (the escalation) and on the internal ask.</p>
+</section>
+<section id="3-what-we-re-building" class="sec"><div class="sec-head"><span class="sec-num">3</span><h2>What we're building</h2></div>
+
+<ol>
+<li><strong>Every team action in a thread names the teammate:</strong> each reply, each outcome change, each delete and restore.</li>
+<li><strong>Labels on threads,</strong> shared by the workspace, shown on the row and in the thread, and filterable.</li>
+<li><strong>Delete moves a thread to Deleted for 30 days, for everyone,</strong> with who deleted it and a Restore.</li>
+</ol>
+<p>Invariant: everyone in a workspace still sees the same threads. Nothing here changes who can see what.</p>
+</section>
+<section id="4-user-stories" class="sec"><div class="sec-head"><span class="sec-num">4</span><h2>User stories</h2></div>
+
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Story</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>US1</td>
+<td>As a teammate, I see which teammate sent each reply, so I know who is handling a prospect.</td>
+</tr>
+<tr>
+<td>US2</td>
+<td>As a teammate, I see who changed an outcome and when, so a wrong outcome can be traced and fixed.</td>
+</tr>
+<tr>
+<td>US3</td>
+<td>As a teammate, I label a thread and create a label when none fits, so the team can group work its own way.</td>
+</tr>
+<tr>
+<td>US4</td>
+<td>As a teammate, I filter by label or by who replied, so I can see one topic or one person's work.</td>
+</tr>
+<tr>
+<td>US5</td>
+<td>As a teammate, I am told a delete affects everyone before I confirm it.</td>
+</tr>
+<tr>
+<td>US6</td>
+<td>As an admin, I find a deleted thread, see who deleted it and restore it, without asking support.</td>
+</tr>
+<tr>
+<td>US7</td>
+<td>As a mobile app user, I can do US1 to US4 and US5 on my phone.</td>
+</tr>
+</tbody>
+</table></div>
+</section>
+<section id="5-decisions" class="sec"><div class="sec-head"><span class="sec-num">5</span><h2>Decisions</h2></div>
+
+<p><strong>D1 – Labels belong to the thread, not the prospect.</strong> A prospect in two sequences has two threads that may need different labels. <strong>Consequence to accept explicitly:</strong> labels are a second concept next to prospect Tags. The name and whether to share data with Tags is OQ2.</p>
+<p><strong>D2 – One label style, no colour per label.</strong> Labels use the design system's tag (<code>ProspectTag</code>, <code>bs-tag bs-tag-blue-17</code>). <strong>Consequence:</strong> labels can't be told apart by colour, only by name.</p>
+<p><strong>D3 – Labels are shared by the workspace, and anyone can create one.</strong> <strong>Consequence:</strong> near-duplicates ("Follow up", "Follow-up") are possible. Rename, merge and delete of labels is OQ3.</p>
+<p><strong>D4 – No owner field, no assignment, no duplicate-reply warning.</strong> <strong>Consequence:</strong> two teammates can still reply to the same thread before either sees the other's reply.</p>
+<p><strong>D5 – Delete is recoverable for 30 days by anyone in the workspace, then permanent.</strong> The confirmation names who will lose the thread. <strong>Consequence:</strong> deleted threads are stored for 30 days. Whether today's delete is permanent is a dependency (§9).</p>
+<p><strong>D6 – Outcomes set by automatic categorisation say "automatically",</strong> not a person's name.</p>
+<p><strong>D7 – "Replied By" matches a thread if that teammate sent any reply on it.</strong> The row shows the latest replier.</p>
+<p><strong>D8 – Replies sent straight from the mailbox (outside Saleshandy) show "Sent outside Saleshandy",</strong> because the sender is unknown.</p>
+<p><strong>D9 – Label and Replied By filters live in the existing Filters drawer.</strong> Clicking any label also filters by it. There is no new filter control in the top row.</p>
+<p><strong>D10 – Labelled rows grow from 106px to 138px; unlabelled rows stay 106px.</strong> A row shows 2 labels, or 1 and "+N" when there are more than 2 (<code>ProspectTagsRow</code>'s rule). <strong>Consequence:</strong> fewer rows fit on screen when many threads are labelled.</p>
+<p><strong>D11 – Read and unread stay shared by the team.</strong> Per-person read state is out of scope.</p>
+</section>
+<section id="6-surfaces" class="sec"><div class="sec-head"><span class="sec-num">6</span><h2>Surfaces</h2></div>
+
+<h3 id="6-1-inbox-list-web">6.1 Inbox list (web)</h3>
+<figure><figcaption>The list with labels on their own line, the team reply name in the snippet, and the Deleted tab.</figcaption><img src="screens/01-who-replied.png" style="max-width:885px" alt="The list with labels on their own line, the team reply name in the snippet, and the Deleted tab." loading="lazy"></figure>
+<ul>
+<li>When the last message is a team reply, the snippet prefix names the sender: "You:" for me, the teammate's name for others, "Outside Saleshandy:" when sent from the mailbox directly. Today it always says "You:".</li>
+<li>Labels sit on their own line under the sequence and outcome pills (D10). Clicking a label filters the list by it.</li>
+<li>A <strong>Deleted</strong> tab after Draft, with a count. See §6.4.</li>
+<li>An unlabelled row is unchanged from production.</li>
+</ul>
+<h3 id="6-2-thread-web">6.2 Thread (web)</h3>
+<figure><figcaption>Labels beside Outcome, a named team reply and an outcome-change line.</figcaption><img src="screens/04-outcome-changed.png" style="max-width:885px" alt="Labels beside Outcome, a named team reply and an outcome-change line." loading="lazy"></figure>
+<ul>
+<li><strong>Header:</strong> label tags with × (<code>ProspectTagWithCancel</code>) sit left of the Outcome control, then "+N" when there are more than 2, then a <strong>Labels</strong> <code>tag-button</code> that opens the label menu (§6.3). Clicking a label name filters by it.</li>
+<li><strong>Each team reply</strong> carries a tag after the mailbox address: "Sent by [name]" (or "Sent by You"), "Sequence, step [n]" for sequence emails, "Sent outside Saleshandy" (D8).</li>
+<li><strong>Activity lines</strong> sit between messages in time order:</li>
+</ul>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>Event</th>
+<th>Copy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Outcome set by a person, from Uncategorized</td>
+<td><em>"[Name] set the outcome to [Outcome] · [time]"</em></td>
+</tr>
+<tr>
+<td>Outcome changed by a person</td>
+<td><em>"[Name] changed the outcome from [A] to [B] · [time]"</em></td>
+</tr>
+<tr>
+<td>Outcome set automatically</td>
+<td><em>"Outcome set to [Outcome] automatically · [time]"</em></td>
+</tr>
+<tr>
+<td>Deleted</td>
+<td><em>"[Name] deleted this thread · [time]"</em></td>
+</tr>
+<tr>
+<td>Restored</td>
+<td><em>"[Name] restored this thread · [time]"</em></td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li>The Outcome menu adds one line: <em>"Your name is saved with the change."</em> The toast after a change offers <strong>Undo</strong>, which removes the change and its line.</li>
+<li>The reply box shows <em>"Sending as [name] from [mailbox]"</em>.</li>
+</ul>
+<h3 id="6-3-labels-menu">6.3 Labels menu</h3>
+<figure><figcaption>The label menu: tick to add, search, create.</figcaption><img src="screens/02-labels-menu.png" style="max-width:885px" alt="The label menu: tick to add, search, create." loading="lazy"></figure>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>State</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Open</td>
+<td>Search box <em>"Find or create a label"</em>, every label with a checkbox and its thread count, <strong>New label</strong>, hint <em>"Labels are shared with everyone in this workspace."</em></td>
+</tr>
+<tr>
+<td>Typing a name that doesn't exist</td>
+<td>Last row becomes <em>Create label "[text]"</em>. Enter on an exact match ticks it.</td>
+</tr>
+<tr>
+<td>New label</td>
+<td>Name field, <em>"Everyone in this workspace will see and can use this label."</em>, Cancel / <strong>Create</strong>. Created labels are added to the thread.</td>
+</tr>
+<tr>
+<td>Duplicate name (any case)</td>
+<td><em>There is already a label called "[name]".</em> Create disabled.</td>
+</tr>
+<tr>
+<td>Over 30 characters</td>
+<td><em>Keep it to 30 characters.</em> Create disabled.</td>
+</tr>
+</tbody>
+</table></div>
+<figure><figcaption>Creating a label.</figcaption><img src="screens/03-new-label.png" style="max-width:885px" alt="Creating a label." loading="lazy"></figure>
+<h3 id="6-4-delete-and-deleted">6.4 Delete and Deleted</h3>
+<figure><figcaption>Delete confirmation naming who loses the thread.</figcaption><img src="screens/05-delete-confirm.png" style="max-width:885px" alt="Delete confirmation naming who loses the thread." loading="lazy"></figure>
+<ul>
+<li>Delete asks first: <strong>"Delete this thread for everyone?"</strong>, <em>"[Prospect]'s thread will disappear from the inbox for everyone in this workspace, not just you."</em>, the people who currently see it, <em>"It moves to Deleted for 30 days with your name on it. Anyone in the workspace can restore it from there."</em> Buttons: Cancel (focused) / <strong>Delete thread</strong>.</li>
+<li>After delete: toast <em>"Thread deleted for everyone. It stays in Deleted for 30 days."</em> with <strong>Undo</strong>.</li>
+<li><strong>Deleted tab:</strong> rows show <em>"Deleted by [name] · [time]"</em>. The open thread shows a banner <em>"[Name] deleted this thread [time]. It will be removed for good on [date]."</em> with <strong>Restore</strong>, and is read-only.</li>
+</ul>
+<figure><figcaption>Another teammate finds who deleted it and restores.</figcaption><img src="screens/06-deleted-tab.png" style="max-width:885px" alt="Another teammate finds who deleted it and restores." loading="lazy"></figure>
+<h3 id="6-5-filters-drawer">6.5 Filters drawer</h3>
+<figure><figcaption>Replied By added to the existing drawer.</figcaption><img src="screens/07-filters-replied-by.png" style="max-width:885px" alt="Replied By added to the existing drawer." loading="lazy"></figure>
+<ul>
+<li>Two new fields after <strong>All Outcomes</strong>: <strong>Replied By</strong> (<em>Select Teammates</em>: Me first, then teammates, then "Outside Saleshandy", then "Not replied yet") and <strong>Labels</strong> (<em>Select Labels</em>). Each option shows its thread count.</li>
+<li>Applied filters show in the existing applied-filter bar, e.g. <em>"Labels: Referral ×"</em>.</li>
+<li>Every existing field is unchanged.</li>
+</ul>
+<figure><figcaption>A label filter applied.</figcaption><img src="screens/09-label-filter-applied.png" style="max-width:885px" alt="A label filter applied." loading="lazy"></figure>
+<h3 id="6-6-mobile-app">6.6 Mobile app</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>List</th>
+<th>Thread</th>
+<th>Labels sheet</th>
+<th>Delete</th>
+<th>Replied by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="screens/10-mobile-list.png"><img alt="" src="screens/10-mobile-list.png" /></a></td>
+<td><a href="screens/11-mobile-thread.png"><img alt="" src="screens/11-mobile-thread.png" /></a></td>
+<td><a href="screens/12-mobile-labels.png"><img alt="" src="screens/12-mobile-labels.png" /></a></td>
+<td><a href="screens/13-mobile-delete.png"><img alt="" src="screens/13-mobile-delete.png" /></a></td>
+<td><a href="screens/14-mobile-replied-by.png"><img alt="" src="screens/14-mobile-replied-by.png" /></a></td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li>Rows: label tag first, then sequence and outcome; the snippet names the replier.</li>
+<li>Filter chips: <strong>Replied by</strong> and <strong>Labels</strong> after Outcome.</li>
+<li>Thread: a tag icon beside the outcome icon opens a <strong>Labels</strong> sheet (tick, New label). Replies show "Sent by"; activity lines as §6.2.</li>
+<li>Delete opens a sheet: <em>"Delete for everyone?"</em> with the same copy. A <strong>Deleted</strong> tab after Scheduled.</li>
+<li>Drawn from the app's <a href="https://docs.saleshandy.com/en/articles/10411739-saleshandy-mobile-app-for-lead-management">help-centre screenshots</a>, not its code (OQ6).</li>
+</ul>
+<p><strong>Explicitly out of scope:</strong> owner and assignment, per-person visibility, per-person unread, label colours, bulk add or remove labels (OQ5), labels in reports.</p>
+<h3 id="acceptance-criteria">Acceptance criteria</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Case</th>
+<th>Expected</th>
+<th>P</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A1</td>
+<td>Teammate B sends a reply in a thread</td>
+<td>The reply shows "Sent by [B]"; for B it reads "Sent by You". The row snippet starts with B's name for everyone else.</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>A2</td>
+<td>A reply is sent from the mailbox outside Saleshandy</td>
+<td>Shows "Sent outside Saleshandy", never a person's name</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>A3</td>
+<td>Teammate changes the outcome</td>
+<td>A line names them, the old and the new outcome, and the time. Undo removes both the change and the line.</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>A4</td>
+<td>Automatic categorisation sets an outcome</td>
+<td>Line reads "set to [Outcome] automatically", no name</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>A5</td>
+<td>Add a label from the menu</td>
+<td>Tag appears in the header and on the row for every teammate, without a reload</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>A6</td>
+<td>Create a label whose name exists in another case</td>
+<td>Blocked with the duplicate message</td>
+<td>P1</td>
+</tr>
+<tr>
+<td>A7</td>
+<td>Thread with 3 labels</td>
+<td>Row shows 1 tag + "+2"; header shows 2 tags + "+1"</td>
+<td>P1</td>
+</tr>
+<tr>
+<td>A8</td>
+<td>Click a label on a row or in the header</td>
+<td>List filters to that label; the applied-filter bar shows it</td>
+<td>P1</td>
+</tr>
+<tr>
+<td>A9</td>
+<td>Replied By = teammate B</td>
+<td>Only threads where B sent at least one reply</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>A10</td>
+<td>Replied By = Not replied yet</td>
+<td>Only threads with no team reply and no outside reply</td>
+<td>P1</td>
+</tr>
+<tr>
+<td>A11-F</td>
+<td>Delete a thread, then restore it within 30 days</td>
+<td>Restored thread has every message, label and outcome it had; both lines are in its history. <strong>Sign off by name, owner: [dev lead, TBD].</strong></td>
+<td>P0</td>
+</tr>
+<tr>
+<td>A12</td>
+<td>Delete confirmation</td>
+<td>Names the people who currently see the thread; Cancel has focus</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>A13</td>
+<td>Teammate opens Deleted</td>
+<td>Sees the thread with "Deleted by [name] · [time]" and Restore</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>A14</td>
+<td>Day 31 after delete</td>
+<td>Thread is gone from Deleted and cannot be restored</td>
+<td>P1</td>
+</tr>
+<tr>
+<td>A15</td>
+<td>Mobile: change outcome, add a label, delete</td>
+<td>Same records and lines as web, visible on web straight away</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>A16</td>
+<td>Unlabelled row</td>
+<td>Pixel-identical to production (106px)</td>
+<td>P1</td>
+</tr>
+</tbody>
+</table></div>
+</section>
+<section id="7-reconciliation-with-existing-behaviour" class="sec"><div class="sec-head"><span class="sec-num">7</span><h2>Reconciliation with existing behaviour</h2></div>
+
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>Existing</th>
+<th>Relationship</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>All Outcomes</strong> filter (Filters drawer)</td>
+<td>Unchanged. It already filters by outcome; nothing new is added for outcomes.</td>
+</tr>
+<tr>
+<td><strong>Sequence Owner</strong> filter</td>
+<td>Different question: who owns the sequence. <strong>Replied By</strong> is who answered. Both stay.</td>
+</tr>
+<tr>
+<td><strong>Prospect Tags</strong> and the Tags filter, which the inbox currently excludes</td>
+<td>Labels are separate (D1). The inbox keeps excluding the Tags filter unless OQ2 decides otherwise.</td>
+</tr>
+<tr>
+<td>Activity modal (opens and link clicks)</td>
+<td>Unchanged. The new lines are in the thread, not the modal.</td>
+</tr>
+<tr>
+<td>Bulk actions (outcome, read, unread, delete)</td>
+<td>Bulk delete must record the actor per thread and land in Deleted, the same as a single delete.</td>
+</tr>
+<tr>
+<td>Open API outcome updates</td>
+<td>An outcome changed through the API must record an actor (D6 copy for the API is OQ7).</td>
+</tr>
+</tbody>
+</table></div>
+</section>
+<section id="8-cross-cutting" class="sec"><div class="sec-head"><span class="sec-num">8</span><h2>Cross-cutting</h2></div>
+
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Level</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Every reply, outcome change, delete and restore stores who did it and when, from web, mobile and bulk actions</td>
+<td>Release blocker</td>
+</tr>
+<tr>
+<td>The name shown is the teammate's current name, read when displayed</td>
+<td>P1</td>
+</tr>
+<tr>
+<td>Removing a user from the workspace keeps their name on past actions</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>Labels and Deleted are per workspace and never visible across workspaces</td>
+<td>Release blocker</td>
+</tr>
+</tbody>
+</table></div>
+</section>
+<section id="9-implementation-notes" class="sec"><div class="sec-head"><span class="sec-num">9</span><h2>Implementation notes</h2></div>
+
+<p>Not prescriptive. Dependencies to confirm <strong>before estimation</strong>:</p>
+<ul>
+<li>Whether a sent reply records which user sent it today, or only the mailbox. "Sent by" depends on it.</li>
+<li>Whether today's delete is permanent. If it is, D5 is new storage, not a filter.</li>
+<li>Whether outcome changes from automatic categorisation, bulk actions and the Open API are told apart from a person's change.</li>
+<li>Mobile app: the same records and filters through its API (no mobile repo was available to this review).</li>
+</ul>
+</section>
+<section id="10-measurement" class="sec"><div class="sec-head"><span class="sec-num">10</span><h2>Measurement</h2></div>
+
+<p><strong>Privacy:</strong> never log label names or message text in analytics events; IDs only.</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>Event</th>
+<th>Fires when</th>
+<th>Properties</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Inbox Label Applied</code></td>
+<td>A label is added to a thread</td>
+<td>label id, thread id, source (web, mobile)</td>
+</tr>
+<tr>
+<td><code>Inbox Label Created</code></td>
+<td>A label is created</td>
+<td>label id</td>
+</tr>
+<tr>
+<td><code>Inbox Filter Applied</code></td>
+<td>Replied By or Labels filter applied</td>
+<td>filter, value count</td>
+</tr>
+<tr>
+<td><code>Inbox Thread Deleted</code> / <code>Restored</code></td>
+<td>Delete or restore</td>
+<td>thread id, source, bulk (yes or no)</td>
+</tr>
+</tbody>
+</table></div>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Healthy</th>
+<th>Investigate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Leading:</strong> share of multi-user workspaces that apply a label in the first 14 days (target)</td>
+<td>20% or more (target, a first guess with no baseline)</td>
+<td>Under 5%</td>
+</tr>
+<tr>
+<td>Restores per 100 deletes</td>
+<td>Under 10 (target)</td>
+<td>Over 25: deletes are being regretted, revisit the confirmation</td>
+</tr>
+<tr>
+<td><strong>Lagging (day 30):</strong> support tickets about deleted or missing inbox threads</td>
+<td>Down from the 30 days before launch</td>
+<td>Flat or up</td>
+</tr>
+</tbody>
+</table></div>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>Guardrail</th>
+<th>Threshold</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Inbox list load time</td>
+<td>Worse by more than 20% (target)</td>
+<td>Roll back the labels line</td>
+</tr>
+<tr>
+<td>Any action stored without an actor</td>
+<td>More than 0</td>
+<td>Halt rollout</td>
+</tr>
+</tbody>
+</table></div>
+<p>Instrumentation ships with the feature.</p>
+</section>
+<section id="11-rollout" class="sec"><div class="sec-head"><span class="sec-num">11</span><h2>Rollout</h2></div>
+
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>Who</th>
+<th>Gate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Internal workspaces (blast-radius control, not an A/B test)</td>
+<td>A1 to A16 pass; no action stored without an actor</td>
+</tr>
+<tr>
+<td>2</td>
+<td>10% of multi-user workspaces</td>
+<td>14 days, guardrails clear</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Everyone, web and mobile together</td>
+<td>Stage 2 clear</td>
+</tr>
+</tbody>
+</table></div>
+<p>No stage starts until the §9 dependencies are confirmed.</p>
+</section>
+<section id="12-open-questions" class="sec"><div class="sec-head"><span class="sec-num">12</span><h2>Open questions</h2></div>
+
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>Question</th>
+<th>Why it matters</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OQ1</td>
+<td>How many paying accounts have 2+ users replying from the inbox?</td>
+<td>Sizes the work against other priorities</td>
+<td>Pull from Metabase before estimation. <strong>Blocking for priority.</strong></td>
+</tr>
+<tr>
+<td>OQ2</td>
+<td>Labels, or reuse prospect Tags?</td>
+<td>One concept or two in the product</td>
+<td>Keep thread labels (D1); name them "Labels" so they don't clash with Tags. <strong>Blocking.</strong></td>
+</tr>
+<tr>
+<td>OQ3</td>
+<td>Who can rename, merge and delete labels?</td>
+<td>Stops label sprawl</td>
+<td>Admins only; anyone creates.</td>
+</tr>
+<tr>
+<td>OQ4</td>
+<td>Add a warning before a duplicate reply later?</td>
+<td>D4 leaves the race open</td>
+<td>Ship without; read support tickets at day 30.</td>
+</tr>
+<tr>
+<td>OQ5</td>
+<td>Bulk add or remove labels?</td>
+<td>Volume users will ask</td>
+<td>Phase 2, through the existing bulk bar.</td>
+</tr>
+<tr>
+<td>OQ6</td>
+<td>Mobile app design and effort</td>
+<td>Drawn from screenshots only</td>
+<td>Mobile dev reviews §6.6 before estimation.</td>
+</tr>
+<tr>
+<td>OQ7</td>
+<td>Actor shown for Open API outcome changes</td>
+<td>API changes have no person</td>
+<td>Show "via API".</td>
+</tr>
+</tbody>
+</table></div>
+</section>
+<section id="13-priority-timeline" class="sec"><div class="sec-head"><span class="sec-num">13</span><h2>Priority &amp; timeline</h2></div>
+
+<p>Priority: TBD after OQ1 · Target: TBD · Release gate: §11 stage 1 · Owners: PM Hitesh Agrawal; dev lead TBD; mobile dev TBD; QA TBD.</p>
+</section>
+<section id="appendix-reference-index" class="sec"><div class="sec-head"><h2>Appendix – reference index</h2></div>
+
+<ul>
+<li>Design of record: <a href="https://product-team-sh.github.io/prd-unified-inbox-labels/prototype/">prototype</a> (production webui <code>main</code> <code>2ae90d3</code> and its stylesheet; design-system components <code>ProspectTag</code>, <code>ProspectTagWithCancel</code>, <code>ProspectTagsRow</code>, <code>AddRemoveTag</code> tag-button, <code>transfer</code> dropdown).</li>
+<li>Origin: <a href="https://3.basecamp.com/4378325/buckets/15549277/question_answers/10389240675">check-in suggestion</a>.</li>
+<li>Mobile app: <a href="https://docs.saleshandy.com/en/articles/10411739-saleshandy-mobile-app-for-lead-management">help-centre article</a>.</li>
+<li>User-voice research (internal, not published): 11 Oct 2026 sweep of Basecamp, Jira and Intercom.</li>
+</ul></section>
+
+  </main>
+</div>
+<a href="#" class="top-btn" onclick="window.scrollTo({top:0,behavior:'smooth'});return false;">&uarr;</a>
+
+<script>
+(function(){
+  var rail = document.querySelector('.progress-rail');
+  var topBtn = document.querySelector('.top-btn');
+  function onScroll(){
+    var h = document.documentElement;
+    var pct = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+    if (rail) rail.style.width = pct + '%';
+    if (topBtn) topBtn.classList.toggle('show', h.scrollTop > 600);
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+
+  var links = Array.from(document.querySelectorAll('.toc-l2, .toc-l3'));
+  var targets = links.map(function(l){ return document.getElementById(l.getAttribute('href').slice(1)); }).filter(Boolean);
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      var link = links[targets.indexOf(e.target)];
+      if (!link) return;
+      if (e.isIntersecting) {
+        links.forEach(function(l){ l.classList.remove('active'); });
+        link.classList.add('active');
+      }
+    });
+  }, {rootMargin: '-10% 0px -75% 0px'});
+  targets.forEach(function(t){ io.observe(t); });
+})();
+</script>
+
+</body>
+</html>
